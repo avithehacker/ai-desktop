@@ -45,7 +45,10 @@
     "productName": "AI Desktop",
     "mac": {
       "category": "public.app-category.productivity",
-      "target": ["dmg", "zip"]
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"]
     },
     "files": [
       "dist/**/*",
