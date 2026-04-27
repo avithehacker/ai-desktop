@@ -1,0 +1,59 @@
+import { Chat, Message, OllamaModel, PullProgress } from './types'
+
+export interface ElectronAPI {
+  // Chats
+  listChats: () => Promise<Chat[]>
+  getChat: (chatId: string) => Promise<Chat | null>
+  createChat: (title: string) => Promise<Chat>
+  deleteChat: (chatId: string) => Promise<void>
+  renameChat: (chatId: string, title: string) => Promise<void>
+
+  // Messages
+  listMessages: (chatId: string) => Promise<Message[]>
+  addMessage: (chatId: string, role: string, content: string, model: string) => Promise<Message>
+
+  // API Keys
+  getKey: (provider: string) => Promise<string | null>
+  setKey: (provider: string, key: string) => Promise<void>
+  deleteKey: (provider: string) => Promise<void>
+  listConfiguredProviders: () => Promise<string[]>
+
+  // Settings
+  getSetting: (key: string) => Promise<string | null>
+  setSetting: (key: string, value: string) => Promise<void>
+
+  // Ollama
+  ollamaStatus: () => Promise<{ installed: boolean; running: boolean; models: OllamaModel[] }>
+  ollamaListModels: () => Promise<OllamaModel[]>
+  ollamaPullModel: (name: string) => Promise<void>
+  ollamaDeleteModel: (name: string) => Promise<void>
+  onOllamaPullProgress: (cb: (progress: PullProgress) => void) => () => void
+
+  // AI
+  streamMessage: (payload: {
+    provider: string
+    model: string
+    messages: Array<{ role: string; content: string }>
+    chatId: string
+  }) => Promise<void>
+  testApiKey: (provider: string, key: string) => Promise<{ ok: boolean; error?: string }>
+
+  onStreamChunk: (cb: (data: { chatId: string; chunk: string }) => void) => () => void
+  onStreamDone: (cb: (data: { chatId: string; fullText: string }) => void) => () => void
+  onStreamError: (cb: (data: { chatId: string; error: string }) => void) => () => void
+
+  // Shortcuts
+  onShortcut: (shortcut: string, cb: () => void) => () => void
+
+  // Misc
+  getAppVersion: () => Promise<string>
+  openExternal: (url: string) => Promise<void>
+  completeOnboarding: () => Promise<void>
+  getOnboardingStatus: () => Promise<string | null>
+}
+
+declare global {
+  interface Window {
+    electronAPI: ElectronAPI
+  }
+}

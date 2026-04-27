@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg-primary: #0c0c0e;
+  --bg-secondary: #141416;
+  --bg-tertiary: #1c1c1f;
+  --bg-elevated: #222225;
+  --bg-hover: #28282c;
+  --border: #2a2a2e;
+  --border-subtle: #1f1f23;
+  --text-primary: #e8e8ed;
+  --text-secondary: #8e8e9a;
+  --text-muted: #4a4a56;
+  --accent: #5e6ad2;
+  --accent-light: #7b84e0;
+  --accent-bg: rgba(94, 106, 210, 0.12);
+  --green: #30d158;
+  --red: #ff453a;
+  --yellow: #ffd60a;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --sidebar-width: 240px;
+  --topbar-height: 52px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Allow text selection in chat */
+.selectable {
+  user-select: text;
+}
+
+/* Drag region for frameless window */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Code blocks */
+.prose pre {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.prose code {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875em;
+  color: var(--accent-light);
+}
+
+/* Streaming cursor */
+.streaming-cursor::after {
+  content: '▋';
+  display: inline-block;
+  animation: cursor-blink 0.8s step-end infinite;
+  color: var(--accent);
+  margin-left: 1px;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Transitions */
+.transition-fast { transition: all 0.1s ease; }
+.transition-med { transition: all 0.2s ease; }
+
+/* Focus visible */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

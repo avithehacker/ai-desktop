@@ -1,0 +1,61 @@
+{
+  "name": "ai-desktop",
+  "version": "1.0.0",
+  "description": "Unified AI desktop client — local + cloud models",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.electron.json && electron .",
+    "build": "vite build && tsc -p tsconfig.electron.json",
+    "dist": "npm run build && electron-builder",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "better-sqlite3": "^9.4.3",
+    "openai": "^4.47.1",
+    "ollama": "^0.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "react-syntax-highlighter": "^15.5.0",
+    "remark-gfm": "^4.0.0",
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.10",
+    "@types/node": "^20.12.7",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.aidesktop.app",
+    "productName": "AI Desktop",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"]
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources"
+      }
+    ]
+  }
+}
