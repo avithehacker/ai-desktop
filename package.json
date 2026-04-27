@@ -1,7 +1,7 @@
 {
-  "name": "ai-desktop",
+  "name": "ramanujan",
   "version": "1.0.0",
-  "description": "Unified AI desktop client — local + cloud models",
+  "description": "Ramanujan — AI router for local and cloud models",
   "main": "dist/electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
@@ -41,8 +41,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.aidesktop.app",
-    "productName": "AI Desktop",
+    "appId": "com.ramanujan.app",
+    "productName": "Ramanujan",
     "mac": {
       "category": "public.app-category.productivity",
       "target": ["dmg"]

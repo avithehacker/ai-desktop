@@ -2,29 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg-primary: #0c0c0e;
-  --bg-secondary: #141416;
-  --bg-tertiary: #1c1c1f;
-  --bg-elevated: #222225;
-  --bg-hover: #28282c;
-  --border: #2a2a2e;
-  --border-subtle: #1f1f23;
-  --text-primary: #e8e8ed;
-  --text-secondary: #8e8e9a;
-  --text-muted: #4a4a56;
-  --accent: #5e6ad2;
-  --accent-light: #7b84e0;
-  --accent-bg: rgba(94, 106, 210, 0.12);
-  --green: #30d158;
-  --red: #ff453a;
-  --yellow: #ffd60a;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --radius-lg: 14px;
-  --sidebar-width: 240px;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f7;
+  --bg-tertiary: #f0f0f0;
+  --bg-elevated: #ebebeb;
+  --bg-hover: #eeeeee;
+  --border: #e8e8e8;
+  --border-subtle: #f0f0f0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted: #999999;
+  --accent: #1a1a1a;
+  --accent-light: #333333;
+  --accent-bg: rgba(0, 0, 0, 0.04);
+  --green: #16a34a;
+  --red: #dc2626;
+  --yellow: #ca8a04;
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'Inter', sans-serif;
+  --radius: 8px;
+  --radius-sm: 5px;
+  --radius-lg: 12px;
+  --sidebar-width: 232px;
   --topbar-height: 52px;
 }
 

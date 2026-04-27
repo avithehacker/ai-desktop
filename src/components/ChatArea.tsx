@@ -137,16 +137,21 @@ function EmptyState({ onSend, model }: { onSend: (text: string) => void; model: 
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 pb-8">
       <div className="w-full max-w-lg space-y-8">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
           <div
-            className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+            className="w-11 h-11 rounded-xl mx-auto flex items-center justify-center"
+            style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
           >
-            ✦
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>R</span>
           </div>
-          <h2 className="text-lg font-medium" style={{ color: 'var(--text-secondary)' }}>
-            Chat with {model.split(':')[0]}
-          </h2>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
+              What can I help with?
+            </h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+              Using {model.split(':')[0]}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -154,7 +159,7 @@ function EmptyState({ onSend, model }: { onSend: (text: string) => void; model: 
             <button
               key={s.text}
               onClick={() => onSend(s.text)}
-              className="text-left p-3 rounded-xl text-sm transition-all duration-150"
+              className="text-left p-3.5 rounded-xl text-sm transition-all duration-150"
               style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'var(--bg-elevated)'
@@ -165,8 +170,8 @@ function EmptyState({ onSend, model }: { onSend: (text: string) => void; model: 
                 e.currentTarget.style.color = 'var(--text-secondary)'
               }}
             >
-              <div className="text-base mb-1">{s.icon}</div>
-              <div className="leading-snug">{s.text}</div>
+              <div className="text-base mb-1.5">{s.icon}</div>
+              <div className="leading-snug font-normal">{s.text}</div>
             </button>
           ))}
         </div>

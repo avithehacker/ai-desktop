@@ -40,8 +40,14 @@ export default function Sidebar({
         background: 'var(--bg-secondary)',
       }}
     >
-      {/* Traffic light spacer */}
-      <div className="drag-region" style={{ height: '52px', paddingTop: '16px', paddingLeft: '80px' }}>
+      {/* Traffic lights + wordmark */}
+      <div className="drag-region flex items-end pb-3 px-4" style={{ height: '52px' }}>
+        <span
+          className="no-drag tracking-widest uppercase text-xs font-medium select-none"
+          style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem', letterSpacing: '0.12em', color: 'var(--text-primary)', fontWeight: 400 }}
+        >
+          Ramanujan
+        </span>
       </div>
 
       {/* New Chat button */}

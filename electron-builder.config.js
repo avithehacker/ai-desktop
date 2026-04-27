@@ -2,8 +2,8 @@
  * @type {import('electron-builder').Configuration}
  */
 const config = {
-  appId: 'com.aidesktop.app',
-  productName: 'AI Desktop',
+  appId: 'com.ramanujan.app',
+  productName: 'Ramanujan',
   copyright: 'Copyright © 2024',
 
   mac: {

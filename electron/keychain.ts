@@ -1,7 +1,7 @@
 // Uses macOS Keychain via keytar for secure API key storage
 // Falls back to encrypted file if keytar is unavailable
 
-const SERVICE_NAME = 'ai-desktop'
+const SERVICE_NAME = 'ramanujan'
 
 export class KeychainManager {
   private keytar: any = null

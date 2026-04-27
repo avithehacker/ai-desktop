@@ -28,22 +28,38 @@ export interface PullProgress {
   modelName: string
 }
 
+// Common paths where Ollama is installed on macOS
+const OLLAMA_PATHS = [
+  '/usr/local/bin/ollama',
+  '/opt/homebrew/bin/ollama',
+  `${os.homedir()}/.ollama/ollama`,
+]
+
 export class OllamaManager {
   private ollamaProcess: ChildProcess | null = null
   private baseUrl = 'http://localhost:11434'
+  private ollamaPath: string | null = null
+
+  async findOllamaPath(): Promise<string | null> {
+    if (this.ollamaPath) return this.ollamaPath
+    for (const p of OLLAMA_PATHS) {
+      try {
+        await fs.promises.access(p, fs.constants.X_OK)
+        this.ollamaPath = p
+        return p
+      } catch {}
+    }
+    // Also try which (may work if PATH is set)
+    try {
+      const { stdout } = await execAsync('which ollama', { env: { ...process.env, PATH: '/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin' } })
+      const p = stdout.trim()
+      if (p) { this.ollamaPath = p; return p }
+    } catch {}
+    return null
+  }
 
   async isInstalled(): Promise<boolean> {
-    try {
-      await execAsync('which ollama')
-      return true
-    } catch {
-      try {
-        await execAsync('ls /usr/local/bin/ollama')
-        return true
-      } catch {
-        return false
-      }
-    }
+    return (await this.findOllamaPath()) !== null
   }
 
   async isRunning(): Promise<boolean> {
@@ -56,18 +72,21 @@ export class OllamaManager {
   }
 
   async ensureRunning(): Promise<void> {
-    if (!(await this.isInstalled())) {
-      throw new Error('Ollama not installed')
-    }
+    const ollamaPath = await this.findOllamaPath()
+    if (!ollamaPath) throw new Error('Ollama not installed')
     if (await this.isRunning()) return
 
-    // Start Ollama serve
-    this.ollamaProcess = spawn('ollama', ['serve'], {
+    this.ollamaProcess = spawn(ollamaPath, ['serve'], {
       detached: false,
       stdio: 'ignore',
     })
 
-    // Wait for it to start (up to 10 seconds)
+    // Swallow spawn errors — app works without Ollama
+    this.ollamaProcess.on('error', (err) => {
+      console.log('Ollama spawn error (non-fatal):', err.message)
+      this.ollamaProcess = null
+    })
+
     for (let i = 0; i < 20; i++) {
       await new Promise(r => setTimeout(r, 500))
       if (await this.isRunning()) return

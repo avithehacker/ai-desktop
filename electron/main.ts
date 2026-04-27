@@ -54,7 +54,7 @@ function createTray() {
   // Create a simple tray icon
   const icon = nativeImage.createEmpty()
   tray = new Tray(icon)
-  tray.setToolTip('AI Desktop')
+  tray.setToolTip('Ramanujan')
   tray.on('click', () => {
     mainWindow?.show()
     mainWindow?.focus()
