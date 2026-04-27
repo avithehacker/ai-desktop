@@ -1,9 +1,6 @@
 import Database from 'better-sqlite3'
 import * as path from 'path'
 import { app } from 'electron'
-import { v4 as uuidv4 } from 'crypto'
-
-// Simple UUID without external dep
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
