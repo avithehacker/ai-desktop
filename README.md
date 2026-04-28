@@ -1,102 +1,169 @@
-# AI Desktop
+# Ramanujan
 
-A native macOS AI chat app — unified client for local and cloud models.
+AI that disappears into the tools you already use. You prompt. It figures out the rest.
 
-## Features
+Local models run on your machine. Cloud kicks in silently when needed. You never choose which — it just works.
 
-- 🖥️ **Local models** via Ollama (private, free, runs on your Mac)
-- ☁️ **Cloud models** — Claude, ChatGPT, Gemini via API keys
-- 💬 **One interface** — switch between all models from a single dropdown
-- 📝 **Streaming responses** with markdown and syntax highlighting
-- 🗂️ **Persistent chat history** via SQLite
-- 🔐 **Secure key storage** in macOS Keychain
-- 🎨 **Dark UI** with native macOS frameless window
+---
 
-## Prerequisites
-
-- macOS 12.0+
-- Node.js 18+
-- npm 9+
-
-## Quick Start
-
-```bash
-# Install dependencies
-npm install
-
-# Start in development mode (hot reload)
-npm run dev
-```
-
-## Build for Production
-
-```bash
-# Build + package as .dmg
-npm run dist
-```
-
-Output will be in `release/`.
-
-## Project Structure
+## What's in this repo
 
 ```
 ai-desktop/
-├── electron/
-│   ├── main.ts           # Electron main process + IPC handlers
-│   ├── preload.ts        # Context bridge (renderer ↔ main)
-│   ├── ollama.ts         # Ollama process management + model pulling
-│   ├── db.ts             # SQLite (better-sqlite3) chat history
-│   ├── keychain.ts       # macOS Keychain API key storage
-│   └── aiProviders.ts    # Streaming: Ollama, Claude, OpenAI, Gemini
-├── src/
-│   ├── components/
-│   │   ├── Sidebar.tsx       # Chat list + navigation
-│   │   ├── ChatArea.tsx      # Main chat view + empty state
-│   │   ├── MessageBubble.tsx # Markdown rendering + code blocks
-│   │   ├── ModelPicker.tsx   # Model dropdown
-│   │   └── InputBar.tsx      # Multiline input + send button
-│   ├── pages/
-│   │   ├── Onboarding.tsx    # 3-screen first-launch flow
-│   │   ├── MainApp.tsx       # Root layout + state
-│   │   └── Settings.tsx      # Models, appearance, data
-│   ├── types.ts              # Shared TypeScript types
-│   ├── electron.d.ts         # Window.electronAPI type declarations
-│   └── App.tsx               # Onboarding vs main router
-├── package.json
-├── vite.config.ts
-├── electron-builder.config.js
-└── entitlements.mac.plist
+├── electron/          # Desktop app (Mac, Windows, Linux)
+├── cli/               # Terminal — ram "your question"
+├── vscode/            # VS Code extension
+├── api/               # HTTP API — POST /v1/prompt
+└── .github/workflows/ # CI + release automation
 ```
 
-## Adding Models
+---
 
-### Local (Ollama)
-Settings → Models → Download any model from the list, or run:
+## How routing works
+
+Every prompt is classified silently:
+
+| Type | What triggers it | Handled by |
+|---|---|---|
+| Simple / Moderate | Short questions, explanations | Local model first (Gemma 2B) |
+| Complex | Code, long prompts | Local enhances prompt → cloud |
+| Image | "draw", "generate image" | Cloud only |
+| Search | "latest news", "today" | Cloud only |
+
+If local gives a bad answer it escalates to cloud automatically. You never see any of this.
+
+---
+
+## Desktop app
+
+Built with Electron + React + TypeScript.
+
+**First launch:** installs Ollama and pulls Gemma 2B automatically. Forced — nothing skippable. Then connects one cloud provider (Claude, ChatGPT, or Gemini).
+
+**Dev:**
 ```bash
-ollama pull llama3.2
+npm install
+npm run dev
 ```
 
-### Cloud
-Settings → Models → Paste your API key → Test & Save
+**Build:**
+```bash
+npm run build
+npx electron-builder --mac   # or --win or --linux
+```
 
-- **Claude**: Get key at [console.anthropic.com](https://console.anthropic.com)
-- **OpenAI**: Get key at [platform.openai.com](https://platform.openai.com)
-- **Gemini**: Get key at [aistudio.google.com](https://aistudio.google.com)
+**Key files:**
+- `electron/main.ts` — IPC handlers, app lifecycle
+- `electron/router.ts` — prompt classification + routing logic
+- `electron/installer.ts` — Ollama + Gemma 2B auto-install
+- `electron/preload.ts` — context bridge (renderer ↔ main)
+- `electron/aiProviders.ts` — streaming for Ollama / Claude / OpenAI / Gemini
+- `electron/keychain.ts` — API keys stored in OS keychain (never plain files)
+- `electron/db.ts` — SQLite chat history
+- `src/pages/Onboarding.tsx` — forced setup flow (∑ icon, auto-installs)
+- `src/pages/MainApp.tsx` — root layout
+- `src/pages/Settings.tsx` — provider keys, appearance
 
-## Keyboard Shortcuts
+---
 
-| Shortcut | Action |
-|----------|--------|
-| ⌘N | New chat |
-| ⌘, | Settings |
-| ⌘K | Switch model |
-| Enter | Send message |
-| ⇧Enter | New line |
+## CLI — `ram`
 
-## Technical Notes
+```bash
+# Ask anything
+ram "explain this error"
 
-- **Streaming**: All providers use server-sent events / async iterators
-- **Security**: API keys stored in macOS Keychain via `keytar`, never in plain files
-- **Database**: `better-sqlite3` (synchronous, fast, zero config)
-- **Window**: Frameless with `hiddenInset` title bar for native macOS feel
-- **Native modules**: `better-sqlite3` and `keytar` require rebuild for Electron ABI — handled by `electron-builder` automatically
+# Pipe files
+cat error.log | ram "summarise"
+
+# Save API key
+ram config --anthropic sk-ant-...
+
+# Start HTTP API server
+ram serve
+```
+
+**Install:**
+```bash
+cd cli
+npm install
+npm run build
+npm link         # makes `ram` available globally
+```
+
+Or download binary from [Releases](https://github.com/avithehacker/ai-desktop/releases/latest).
+
+---
+
+## VS Code extension
+
+- `Cmd+Shift+R` — ask about selected code
+- `Cmd+Shift+E` — explain selection inline
+
+**Build:**
+```bash
+cd vscode
+npm install
+npm run build
+npx vsce package   # produces ramanujan-x.x.x.vsix
+```
+
+Install the `.vsix`: open VS Code → Extensions → `...` → Install from VSIX.
+
+---
+
+## HTTP API
+
+```bash
+# Start (requires ram CLI installed)
+ram serve
+
+# Or run directly
+cd api && npx ts-node src/server.ts
+```
+
+```bash
+# Use it
+curl -X POST http://localhost:4242/v1/prompt \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Fix this bug"}'
+
+# Health check
+curl http://localhost:4242/health
+```
+
+API keys read from `~/.ramanujan/config.json` (written by `ram config`).
+
+---
+
+## CI / Releases
+
+**Every push to main** (`build.yml`):
+- Builds Mac DMG, Windows EXE, Linux AppImage
+- Packages VS Code VSIX
+- Builds CLI binaries (Mac / Windows / Linux)
+
+**On `v*` tag** (`release.yml`):
+- Creates GitHub Release with all assets attached
+- Publishes CLI to npm (needs `NPM_TOKEN` secret)
+- Publishes extension to VS Code Marketplace (needs `VSCE_PAT` secret)
+
+To release:
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+---
+
+## Config
+
+API keys are stored at `~/.ramanujan/config.json`:
+```json
+{
+  "anthropic": "sk-ant-...",
+  "openai": "sk-...",
+  "google": "AIza..."
+}
+```
+
+Set via `ram config --anthropic YOUR_KEY` or through the app's onboarding.
