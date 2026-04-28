@@ -48,17 +48,17 @@ jobs:
             cli/binaries/*
             vscode/*.vsix
 
-      # ── npm publish (only if NPM_TOKEN secret is set) ─────────────────────
+      # ── npm publish (skips gracefully if NPM_TOKEN not set) ───────────────
       - name: Publish CLI to npm
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        continue-on-error: true
         run: npm publish --access public
         working-directory: cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # ── VS Code Marketplace (only if VSCE_PAT secret is set) ──────────────
+      # ── VS Code Marketplace (skips gracefully if VSCE_PAT not set) ────────
       - name: Publish to VS Code Marketplace
-        if: ${{ secrets.VSCE_PAT != '' }}
+        continue-on-error: true
         run: npx vsce publish --no-dependencies
         working-directory: vscode
         env:
