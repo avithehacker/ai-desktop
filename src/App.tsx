@@ -19,12 +19,11 @@ export default function App() {
           setState('onboarding')
           return
         }
-        // Onboarding completed before — verify Ollama is still up.
-        // If it's not (e.g. user wiped it or first run on new machine),
-        // send them back through setup so nothing is broken silently.
+        // Onboarding completed before — verify Ollama binary is still present.
+        // We check installed (not running) to avoid a race where the main
+        // process hasn't finished starting ollama serve yet.
         const ollamaStatus = await window.electronAPI.ollamaStatus()
-        if (!ollamaStatus.running) {
-          // Reset flag so setup runs fresh
+        if (!ollamaStatus.installed) {
           await window.electronAPI.setSetting('onboarding_complete', 'false')
           setState('onboarding')
           return

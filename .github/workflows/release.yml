@@ -5,6 +5,57 @@ on:
     tags: ['v*']
 
 jobs:
+  # ── Mac desktop DMG ─────────────────────────────────────────────────────────
+  build-mac-app:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm run build && npx electron-builder --mac --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: dist/*.dmg
+          if-no-files-found: warn
+
+  # ── Windows desktop EXE ─────────────────────────────────────────────────────
+  build-windows-app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm run build && npx electron-builder --win --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: dist/*.exe
+          if-no-files-found: warn
+
+  # ── Linux desktop AppImage ──────────────────────────────────────────────────
+  build-linux-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: sudo apt-get install -y rpm fakeroot
+      - run: npm run build && npx electron-builder --linux --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/*.AppImage
+          if-no-files-found: warn
+
   # ── VS Code VSIX ────────────────────────────────────────────────────────────
   build-vscode:
     runs-on: ubuntu-latest
@@ -23,23 +74,6 @@ jobs:
         with:
           name: vscode-vsix
           path: vscode/*.vsix
-
-  # ── Linux desktop AppImage ──────────────────────────────────────────────────
-  build-linux-app:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: sudo apt-get install -y rpm fakeroot
-      - run: npm run build && npx electron-builder --linux --publish never
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-appimage
-          path: dist/*.AppImage
-          if-no-files-found: warn
 
   # ── CLI binaries (native per OS — no cross-compilation) ────────────────────
   build-cli:
@@ -75,7 +109,7 @@ jobs:
 
   # ── Create GitHub Release + optional publishes ─────────────────────────────
   release:
-    needs: [build-vscode, build-linux-app, build-cli]
+    needs: [build-mac-app, build-windows-app, build-linux-app, build-vscode, build-cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
