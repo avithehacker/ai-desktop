@@ -5,7 +5,77 @@ on:
     tags: ['v*']
 
 jobs:
+  # ── VS Code VSIX ────────────────────────────────────────────────────────────
+  build-vscode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+        working-directory: vscode
+      - run: npm run build
+        working-directory: vscode
+      - run: npx vsce package --no-dependencies
+        working-directory: vscode
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vscode-vsix
+          path: vscode/*.vsix
+
+  # ── Linux desktop AppImage ──────────────────────────────────────────────────
+  build-linux-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: sudo apt-get install -y rpm fakeroot
+      - run: npm run build && npx electron-builder --linux --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/*.AppImage
+          if-no-files-found: warn
+
+  # ── CLI binaries (native per OS — no cross-compilation) ────────────────────
+  build-cli:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node18-linux-x64
+            output: ram-linux
+          - os: macos-latest
+            target: node18-macos-arm64
+            output: ram-macos
+          - os: windows-latest
+            target: node18-win-x64
+            output: ram-win.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm install
+        working-directory: cli
+      - run: npm run build
+        working-directory: cli
+      - name: Package binary
+        run: npx pkg dist/index.js --targets ${{ matrix.target }} --output ${{ matrix.output }}
+        working-directory: cli
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.os }}
+          path: cli/${{ matrix.output }}
+
+  # ── Create GitHub Release + optional publishes ─────────────────────────────
   release:
+    needs: [build-vscode, build-linux-app, build-cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -17,16 +87,31 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      # ── CLI binaries ───────────────────────────────────────────────────────
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release-assets/*
+
+      # npm publish (skips gracefully if NPM_TOKEN not set)
       - name: Install CLI deps
         run: npm install
         working-directory: cli
 
-      - name: Build CLI binaries
-        run: mkdir -p binaries && npm run package
+      - name: Publish CLI to npm
+        continue-on-error: true
+        run: npm publish --access public
         working-directory: cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # ── VS Code extension ──────────────────────────────────────────────────
+      # VS Code Marketplace (skips gracefully if VSCE_PAT not set)
       - name: Install VS Code extension deps
         run: npm install
         working-directory: vscode
@@ -35,28 +120,6 @@ jobs:
         run: npm run build
         working-directory: vscode
 
-      - name: Package VSIX
-        run: npx vsce package --no-dependencies
-        working-directory: vscode
-
-      # ── GitHub Release (always runs) ───────────────────────────────────────
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            cli/binaries/*
-            vscode/*.vsix
-
-      # ── npm publish (skips gracefully if NPM_TOKEN not set) ───────────────
-      - name: Publish CLI to npm
-        continue-on-error: true
-        run: npm publish --access public
-        working-directory: cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # ── VS Code Marketplace (skips gracefully if VSCE_PAT not set) ────────
       - name: Publish to VS Code Marketplace
         continue-on-error: true
         run: npx vsce publish --no-dependencies
