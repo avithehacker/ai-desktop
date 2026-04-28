@@ -6,7 +6,6 @@
   "publisher": "avithehacker",
   "repository": { "type": "git", "url": "https://github.com/avithehacker/ai-desktop" },
   "license": "MIT",
-  "icon": "icon.png",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["AI", "Other"],
   "keywords": ["ai", "llm", "local", "assistant", "copilot"],

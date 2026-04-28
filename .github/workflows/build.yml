@@ -91,15 +91,8 @@ jobs:
         working-directory: cli
 
       - name: Build CLI binaries
-        run: npm run package
+        run: mkdir -p binaries && npm run package
         working-directory: cli
-
-      - name: Rename binaries
-        working-directory: cli/binaries
-        run: |
-          mv ram-macos     ram-macos    2>/dev/null || true
-          mv ram-win.exe   ram-win.exe  2>/dev/null || true
-          mv ram-linux     ram-linux    2>/dev/null || true
 
       - name: Upload CLI binaries
         uses: actions/upload-artifact@v4
