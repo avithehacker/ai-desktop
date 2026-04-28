@@ -17,20 +17,14 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      # ── CLI ────────────────────────────────────────────────────────────────
+      # ── CLI binaries ───────────────────────────────────────────────────────
       - name: Install CLI deps
         run: npm install
         working-directory: cli
 
       - name: Build CLI binaries
-        run: npm run package
+        run: mkdir -p binaries && npm run package
         working-directory: cli
-
-      - name: Publish CLI to npm
-        run: npm publish --access public
-        working-directory: cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # ── VS Code extension ──────────────────────────────────────────────────
       - name: Install VS Code extension deps
@@ -45,28 +39,27 @@ jobs:
         run: npx vsce package --no-dependencies
         working-directory: vscode
 
-      - name: Publish to VS Code Marketplace
-        run: npx vsce publish --no-dependencies
-        working-directory: vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-      # ── Desktop apps (Mac / Windows / Linux) ──────────────────────────────
-      - name: Install desktop deps
-        run: npm install
-
-      - name: Build desktop apps
-        run: npm run build
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-
-      # ── GitHub Release ─────────────────────────────────────────────────────
+      # ── GitHub Release (always runs) ───────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
-            cli/binaries/ram-macos
-            cli/binaries/ram-win.exe
-            cli/binaries/ram-linux
+            cli/binaries/*
             vscode/*.vsix
+
+      # ── npm publish (only if NPM_TOKEN secret is set) ─────────────────────
+      - name: Publish CLI to npm
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: npm publish --access public
+        working-directory: cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── VS Code Marketplace (only if VSCE_PAT secret is set) ──────────────
+      - name: Publish to VS Code Marketplace
+        if: ${{ secrets.VSCE_PAT != '' }}
+        run: npx vsce publish --no-dependencies
+        working-directory: vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
