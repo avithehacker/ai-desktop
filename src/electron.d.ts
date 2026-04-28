@@ -29,10 +29,13 @@ export interface ElectronAPI {
   ollamaDeleteModel: (name: string) => Promise<void>
   onOllamaPullProgress: (cb: (progress: PullProgress) => void) => () => void
 
-  // AI
+  // Installer
+  installOllama: () => Promise<void>
+  pullDefaultModel: () => Promise<void>
+  onInstallProgress: (cb: (progress: any) => void) => () => void
+
+  // AI (auto-routed)
   streamMessage: (payload: {
-    provider: string
-    model: string
     messages: Array<{ role: string; content: string }>
     chatId: string
   }) => Promise<void>

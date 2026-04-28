@@ -34,10 +34,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeAllListeners('ollama:pull-progress')
   },
 
-  // AI Streaming
+  // Installer
+  installOllama: () => ipcRenderer.invoke('install:ollama'),
+  pullDefaultModel: () => ipcRenderer.invoke('install:pull-model'),
+  onInstallProgress: (cb: (progress: any) => void) => {
+    const handler = (_e: any, data: any) => cb(data)
+    ipcRenderer.on('install:progress', handler)
+    return () => ipcRenderer.removeListener('install:progress', handler)
+  },
+
+  // AI Streaming (auto-routed — no provider/model needed)
   streamMessage: (payload: {
-    provider: string
-    model: string
     messages: Array<{ role: string; content: string }>
     chatId: string
   }) => ipcRenderer.invoke('ai:stream', payload),

@@ -51,3 +51,83 @@ jobs:
           name: windows-installer
           path: dist/*.exe
           if-no-files-found: warn
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Linux build deps
+        run: sudo apt-get install -y rpm fakeroot
+
+      - name: Build app
+        run: npm run build && npx electron-builder --linux --publish never
+
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installer
+          path: dist/*.AppImage
+          if-no-files-found: warn
+
+  build-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install CLI dependencies
+        run: npm install
+        working-directory: cli
+
+      - name: Build CLI binaries
+        run: npm run package
+        working-directory: cli
+
+      - name: Rename binaries
+        working-directory: cli/binaries
+        run: |
+          mv ram-macos     ram-macos    2>/dev/null || true
+          mv ram-win.exe   ram-win.exe  2>/dev/null || true
+          mv ram-linux     ram-linux    2>/dev/null || true
+
+      - name: Upload CLI binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-binaries
+          path: cli/binaries/
+          if-no-files-found: warn
+
+  build-vscode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install VS Code extension dependencies
+        run: npm install
+        working-directory: vscode
+
+      - name: Package VS Code extension
+        run: npx vsce package --no-dependencies
+        working-directory: vscode
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-extension
+          path: vscode/*.vsix
+          if-no-files-found: warn

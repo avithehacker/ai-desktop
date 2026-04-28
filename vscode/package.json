@@ -1,0 +1,66 @@
+{
+  "name": "ramanujan",
+  "displayName": "Ramanujan",
+  "description": "AI assistant that works locally and escalates to cloud — silently.",
+  "version": "1.0.0",
+  "publisher": "avithehacker",
+  "repository": { "type": "git", "url": "https://github.com/avithehacker/ai-desktop" },
+  "license": "MIT",
+  "icon": "icon.png",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["AI", "Other"],
+  "keywords": ["ai", "llm", "local", "assistant", "copilot"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ramanujan.ask",
+        "title": "Ask Ramanujan",
+        "category": "Ramanujan"
+      },
+      {
+        "command": "ramanujan.explain",
+        "title": "Explain Selection",
+        "category": "Ramanujan"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ramanujan.ask",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r"
+      },
+      {
+        "command": "ramanujan.explain",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorHasSelection"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ramanujan.ask",
+          "group": "ramanujan@1"
+        },
+        {
+          "command": "ramanujan.explain",
+          "group": "ramanujan@2",
+          "when": "editorHasSelection"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}

@@ -3,6 +3,8 @@ import * as path from 'path'
 import { OllamaManager } from './ollama'
 import { DatabaseManager } from './db'
 import { KeychainManager } from './keychain'
+import { ensureOllamaInstalled, pullDefaultModel, isModelPulled, DEFAULT_MODEL } from './installer'
+import { route } from './router'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -125,6 +127,25 @@ ipcMain.handle('ollama:pull-model', async (event, modelName: string) => {
   })
 })
 
+// ── IPC: Installer ────────────────────────────────────────────────────────────
+
+ipcMain.handle('install:ollama', async (event) => {
+  return ensureOllamaInstalled((progress) => {
+    event.sender.send('install:progress', progress)
+  })
+})
+
+ipcMain.handle('install:pull-model', async (event) => {
+  const already = await isModelPulled(DEFAULT_MODEL)
+  if (already) {
+    event.sender.send('install:progress', { step: 'model-ready', model: DEFAULT_MODEL })
+    return true
+  }
+  return pullDefaultModel((progress) => {
+    event.sender.send('install:progress', progress)
+  })
+})
+
 // ── IPC: Cloud AI ─────────────────────────────────────────────────────────────
 
 ipcMain.handle('ai:test-key', async (_e, provider: string, key: string) => {
@@ -132,31 +153,19 @@ ipcMain.handle('ai:test-key', async (_e, provider: string, key: string) => {
   return testApiKey(provider, key)
 })
 
-// ── IPC: Streaming ────────────────────────────────────────────────────────────
+// ── IPC: Streaming (auto-routed) ──────────────────────────────────────────────
 
 ipcMain.handle('ai:stream', async (event, payload: {
-  provider: string
-  model: string
   messages: Array<{ role: string; content: string }>
   chatId: string
 }) => {
-  const { streamResponse } = require('./aiProviders')
-  
   try {
-    await streamResponse(
-      payload.provider,
-      payload.model,
+    await route(
       payload.messages,
-      async (chunk: string) => {
-        event.sender.send('ai:stream-chunk', { chatId: payload.chatId, chunk })
-      },
-      async (fullText: string) => {
-        event.sender.send('ai:stream-done', { chatId: payload.chatId, fullText })
-      },
-      (error: string) => {
-        event.sender.send('ai:stream-error', { chatId: payload.chatId, error })
-      },
-      keychain
+      keychain,
+      (chunk: string) => event.sender.send('ai:stream-chunk', { chatId: payload.chatId, chunk }),
+      (fullText: string) => event.sender.send('ai:stream-done', { chatId: payload.chatId, fullText }),
+      (error: string) => event.sender.send('ai:stream-error', { chatId: payload.chatId, error })
     )
   } catch (err: any) {
     event.sender.send('ai:stream-error', { chatId: payload.chatId, error: err.message })
