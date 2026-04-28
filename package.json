@@ -2,6 +2,7 @@
   "name": "ramanujan",
   "version": "1.0.0",
   "description": "Ramanujan — AI router for local and cloud models",
+  "author": { "name": "Avinash Singh", "email": "avithehacker@users.noreply.github.com" },
   "main": "dist/electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
