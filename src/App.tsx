@@ -10,14 +10,26 @@ export default function App() {
   useEffect(() => {
     const check = async () => {
       try {
-        // Check if running in Electron
         if (!window.electronAPI) {
-          // Dev mode without Electron - go straight to main
           setState('main')
           return
         }
         const status = await window.electronAPI.getOnboardingStatus()
-        setState(status === 'true' ? 'main' : 'onboarding')
+        if (status !== 'true') {
+          setState('onboarding')
+          return
+        }
+        // Onboarding completed before — verify Ollama is still up.
+        // If it's not (e.g. user wiped it or first run on new machine),
+        // send them back through setup so nothing is broken silently.
+        const ollamaStatus = await window.electronAPI.ollamaStatus()
+        if (!ollamaStatus.running) {
+          // Reset flag so setup runs fresh
+          await window.electronAPI.setSetting('onboarding_complete', 'false')
+          setState('onboarding')
+          return
+        }
+        setState('main')
       } catch {
         setState('onboarding')
       }

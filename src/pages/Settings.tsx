@@ -11,7 +11,6 @@ type Tab = 'models' | 'appearance' | 'data'
 const PROVIDER_INFO = {
   anthropic: { name: 'Anthropic (Claude)', placeholder: 'sk-ant-...', color: '#d4a574' },
   openai: { name: 'OpenAI (ChatGPT)', placeholder: 'sk-...', color: '#74b9d4' },
-  google: { name: 'Google (Gemini)', placeholder: 'AIza...', color: '#74d4a5' },
 }
 
 export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
@@ -82,6 +81,14 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
     if (!api) return
     setPullProgress(prev => ({ ...prev, [modelName]: { status: 'starting', modelName } }))
     try {
+      // Ensure Ollama is running before attempting a pull
+      const status = await api.ollamaStatus()
+      if (!status.running) {
+        setPullProgress(prev => ({ ...prev, [modelName]: { status: 'Starting Ollama…', modelName } }))
+        await api.installOllama()
+        const after = await api.ollamaStatus()
+        if (!after.running) throw new Error('Ollama could not be started. Please restart the app.')
+      }
       await api.ollamaPullModel(modelName)
       await loadData()
       onModelsChanged()

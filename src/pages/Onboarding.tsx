@@ -14,9 +14,8 @@ interface StepState {
 }
 
 const PROVIDER_INFO: Record<string, { name: string; tagline: string; color: string; placeholder: string; keysUrl: string }> = {
-  anthropic: { name: 'Claude',   tagline: 'by Anthropic', color: '#c96442', placeholder: 'sk-ant-...', keysUrl: 'https://console.anthropic.com/account/keys' },
-  openai:    { name: 'ChatGPT',  tagline: 'by OpenAI',    color: '#19c37d', placeholder: 'sk-...',      keysUrl: 'https://platform.openai.com/api-keys' },
-  google:    { name: 'Gemini',   tagline: 'by Google',    color: '#4285f4', placeholder: 'AIza...',     keysUrl: 'https://aistudio.google.com/app/apikey' },
+  anthropic: { name: 'Claude',  tagline: 'by Anthropic', color: '#c96442', placeholder: 'sk-ant-...', keysUrl: 'https://console.anthropic.com/account/keys' },
+  openai:    { name: 'ChatGPT', tagline: 'by OpenAI',    color: '#19c37d', placeholder: 'sk-...',      keysUrl: 'https://platform.openai.com/api-keys' },
 }
 
 function StepRow({ step }: { step: StepState }) {
@@ -30,10 +29,10 @@ function StepRow({ step }: { step: StepState }) {
     <div className="space-y-2">
       <div className="flex items-center gap-3">
         <span className="text-sm w-4 text-center shrink-0">{icon}</span>
-        <span className="text-sm flex-1" style={{ color: step.status === 'waiting' ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: step.status === 'running' ? 500 : 400 }}>
+        <span className="text-sm flex-1" style={{ color: step.status === 'waiting' ? 'var(--text-muted)' : step.status === 'error' ? 'var(--red)' : 'var(--text-primary)', fontWeight: step.status === 'running' ? 500 : 400 }}>
           {step.label}
         </span>
-        {step.detail && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{step.detail}</span>}
+        {step.detail && <span className="text-xs" style={{ color: step.status === 'error' ? 'var(--red)' : 'var(--text-muted)' }}>{step.detail}</span>}
       </div>
       {step.status === 'running' && typeof step.percent === 'number' && (
         <div className="pl-7">
@@ -49,13 +48,13 @@ function StepRow({ step }: { step: StepState }) {
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [screen, setScreen] = useState<Screen>('setup')
   const [steps, setSteps] = useState<StepState[]>([
-    { label: 'Installing Ollama', status: 'waiting' },
+    { label: 'Installing Ollama (local AI engine)', status: 'waiting' },
     { label: 'Downloading Gemma 2B (1.6 GB)', status: 'waiting' },
   ])
+  const [setupError, setSetupError] = useState(false)
   const [providers, setProviders] = useState<Record<string, { key: string; testing: boolean; tested: boolean; ok: boolean; error: string }>>({
     anthropic: { key: '', testing: false, tested: false, ok: false, error: '' },
     openai:    { key: '', testing: false, tested: false, ok: false, error: '' },
-    google:    { key: '', testing: false, tested: false, ok: false, error: '' },
   })
   const [expanded, setExpanded] = useState<string | null>(null)
 
@@ -67,37 +66,52 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const runSetup = async () => {
     if (!window.electronAPI) { setScreen('cloud'); return }
 
+    setSetupError(false)
+    setSteps([
+      { label: 'Installing Ollama (local AI engine)', status: 'waiting' },
+      { label: 'Downloading Gemma 2B (1.6 GB)', status: 'waiting' },
+    ])
+
+    // Step 1: Install Ollama
     updateStep(0, { status: 'running', detail: 'Checking...' })
+    let ollamaOk = false
     const cleanup0 = window.electronAPI.onInstallProgress((p: any) => {
       if (p.step === 'checking')           updateStep(0, { detail: 'Checking...' })
       if (p.step === 'ollama-found')       updateStep(0, { status: 'done', detail: '' })
       if (p.step === 'downloading-ollama') updateStep(0, { detail: `${p.percent}%`, percent: p.percent })
       if (p.step === 'installing-ollama')  updateStep(0, { detail: 'Installing...' })
       if (p.step === 'starting-ollama')    updateStep(0, { detail: 'Starting...' })
-      if (p.step === 'error')              updateStep(0, { status: 'error', detail: p.message })
     })
     try {
       await window.electronAPI.installOllama()
       updateStep(0, { status: 'done', detail: '' })
+      ollamaOk = true
     } catch (e: any) {
-      updateStep(0, { status: 'error', detail: e.message })
+      updateStep(0, { status: 'error', detail: e.message || 'Failed' })
     }
     cleanup0()
 
+    if (!ollamaOk) { setSetupError(true); return }
+
+    // Step 2: Pull Gemma 2B
     updateStep(1, { status: 'running', percent: 0, detail: '0%' })
+    let modelOk = false
     const cleanup1 = window.electronAPI.onInstallProgress((p: any) => {
       if (p.step === 'pulling-model') updateStep(1, { percent: p.percent, detail: `${p.percent}%` })
       if (p.step === 'model-ready')   updateStep(1, { status: 'done', detail: '' })
-      if (p.step === 'error')         updateStep(1, { status: 'error', detail: p.message })
     })
     try {
       await window.electronAPI.pullDefaultModel()
       updateStep(1, { status: 'done', detail: '' })
+      modelOk = true
     } catch (e: any) {
-      updateStep(1, { status: 'error', detail: e.message })
+      updateStep(1, { status: 'error', detail: e.message || 'Failed' })
     }
     cleanup1()
 
+    if (!modelOk) { setSetupError(true); return }
+
+    // Both done — advance to cloud setup
     setScreen('cloud')
   }
 
@@ -140,7 +154,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             Ramanujan
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            {screen === 'setup' ? 'Setting up your local AI…' : 'One last step'}
+            {screen === 'setup' ? 'Setting up your local AI…' : 'Connect a cloud AI to continue'}
           </p>
         </div>
 
@@ -149,9 +163,23 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             <div className="rounded-2xl p-5 space-y-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
               {steps.map((step, i) => <StepRow key={i} step={step} />)}
             </div>
-            <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-              This only runs once. Do not close the app.
-            </p>
+
+            {setupError ? (
+              <div className="space-y-3">
+                <p className="text-sm text-center" style={{ color: 'var(--red)' }}>
+                  Setup failed. Check your internet connection and try again.
+                </p>
+                <button onClick={runSetup}
+                  className="w-full py-3 rounded-xl font-semibold transition-all duration-200 hover:opacity-80 active:scale-[0.98]"
+                  style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                  Retry Setup
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                This only runs once. Do not close the app.
+              </p>
+            )}
           </div>
         )}
 

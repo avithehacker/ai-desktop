@@ -68,6 +68,15 @@ app.whenReady().then(async () => {
   keychain = new KeychainManager()
   ollamaManager = new OllamaManager()
 
+  // Set dock icon on macOS
+  if (process.platform === 'darwin') {
+    const iconPath = path.join(__dirname, '../../build/icon.icns')
+    try {
+      const icon = nativeImage.createFromPath(iconPath)
+      if (!icon.isEmpty()) app.dock.setIcon(icon)
+    } catch {}
+  }
+
   createWindow()
 
   // Start Ollama if installed
@@ -122,6 +131,10 @@ ipcMain.handle('ollama:list-models', () => ollamaManager.listModels())
 ipcMain.handle('ollama:delete-model', (_e, name: string) => ollamaManager.deleteModel(name))
 
 ipcMain.handle('ollama:pull-model', async (event, modelName: string) => {
+  // Auto-start Ollama if it's not already running
+  if (!await ollamaManager.isRunning()) {
+    await ollamaManager.ensureRunning()
+  }
   return ollamaManager.pullModel(modelName, (progress) => {
     event.sender.send('ollama:pull-progress', progress)
   })
