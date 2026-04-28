@@ -165,7 +165,8 @@ ipcMain.handle('ai:stream', async (event, payload: {
       keychain,
       (chunk: string) => event.sender.send('ai:stream-chunk', { chatId: payload.chatId, chunk }),
       (fullText: string) => event.sender.send('ai:stream-done', { chatId: payload.chatId, fullText }),
-      (error: string) => event.sender.send('ai:stream-error', { chatId: payload.chatId, error })
+      (error: string) => event.sender.send('ai:stream-error', { chatId: payload.chatId, error }),
+      db
     )
   } catch (err: any) {
     event.sender.send('ai:stream-error', { chatId: payload.chatId, error: err.message })

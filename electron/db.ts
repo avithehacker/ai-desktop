@@ -58,6 +58,26 @@ export class DatabaseManager {
 
       CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
       CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
+
+      CREATE TABLE IF NOT EXISTS routing_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prompt_hash TEXT NOT NULL,
+        intent TEXT NOT NULL,
+        model_used TEXT NOT NULL,
+        fallback_used INTEGER NOT NULL DEFAULT 0,
+        tokens_estimated INTEGER NOT NULL DEFAULT 0,
+        latency_ms INTEGER NOT NULL DEFAULT 0,
+        success INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS model_weights (
+        intent TEXT NOT NULL,
+        model TEXT NOT NULL,
+        weight REAL NOT NULL DEFAULT 1.0,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (intent, model)
+      );
     `)
   }
 
@@ -126,5 +146,56 @@ export class DatabaseManager {
 
   clearAllChats(): void {
     this.db.exec('DELETE FROM messages; DELETE FROM chats;')
+  }
+
+  logInteraction(data: {
+    prompt_hash: string
+    intent: string
+    model_used: string
+    fallback_used: boolean
+    tokens_estimated: number
+    latency_ms: number
+    success: boolean
+  }): void {
+    this.db.prepare(`
+      INSERT INTO routing_log (prompt_hash, intent, model_used, fallback_used, tokens_estimated, latency_ms, success, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.prompt_hash, data.intent, data.model_used,
+      data.fallback_used ? 1 : 0, data.tokens_estimated,
+      data.latency_ms, data.success ? 1 : 0, Date.now()
+    )
+  }
+
+  getWeightsForIntent(intent: string): Record<string, number> {
+    const rows = this.db.prepare(
+      'SELECT model, weight FROM model_weights WHERE intent = ?'
+    ).all(intent) as { model: string; weight: number }[]
+    const weights: Record<string, number> = { local: 1, claude: 1, openai: 1 }
+    for (const row of rows) weights[row.model] = row.weight
+    return weights
+  }
+
+  updateModelWeight(intent: string, model: string, fallbackUsed: boolean, success: boolean): void {
+    const now = Date.now()
+    // Ensure row exists
+    this.db.prepare(`
+      INSERT OR IGNORE INTO model_weights (intent, model, weight, updated_at) VALUES (?, ?, 1.0, ?)
+    `).run(intent, model, now)
+
+    const current = this.db.prepare(
+      'SELECT weight FROM model_weights WHERE intent = ? AND model = ?'
+    ).get(intent, model) as { weight: number }
+
+    let weight = current.weight
+    if (fallbackUsed) {
+      weight = Math.max(0.1, weight * 0.9)   // fallback triggered → down 10%
+    } else if (success) {
+      weight = Math.min(3.0, weight * 1.05)  // good response → up 5%
+    }
+
+    this.db.prepare(
+      'UPDATE model_weights SET weight = ?, updated_at = ? WHERE intent = ? AND model = ?'
+    ).run(weight, now, intent, model)
   }
 }
