@@ -1,125 +1,73 @@
-name: Release
+name: Build & Release
 
 on:
   push:
-    tags: ['v*']
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
-  # ── Mac desktop DMG ─────────────────────────────────────────────────────────
-  build-mac-app:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: npm run build && npx electron-builder --mac --publish never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mac-dmg
-          path: dist/*.dmg
-          if-no-files-found: warn
-
-  # ── Windows desktop EXE ─────────────────────────────────────────────────────
-  build-windows-app:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: npm run build && npx electron-builder --win --publish never
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-exe
-          path: dist/*.exe
-          if-no-files-found: warn
-
-  # ── Linux desktop AppImage ──────────────────────────────────────────────────
-  build-linux-app:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-      - run: sudo apt-get install -y rpm fakeroot
-      - run: npm run build && npx electron-builder --linux --publish never
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-appimage
-          path: dist/*.AppImage
-          if-no-files-found: warn
-
-  # ── VS Code VSIX ────────────────────────────────────────────────────────────
-  build-vscode:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install
-        working-directory: vscode
-      - run: npm run build
-        working-directory: vscode
-      - run: npx vsce package --no-dependencies
-        working-directory: vscode
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vscode-vsix
-          path: vscode/*.vsix
-
-  # ── CLI binaries (native per OS — no cross-compilation) ────────────────────
-  build-cli:
+  build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            target: node18-linux-x64
-            output: ram-linux
           - os: macos-latest
-            target: node18-macos-arm64
-            output: ram-macos
+            platform: mac
           - os: windows-latest
-            target: node18-win-x64
-            output: ram-win.exe
+            platform: win
+          - os: ubuntu-latest
+            platform: linux
+
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: npm install
-        working-directory: cli
-      - run: npm run build
-        working-directory: cli
-      - name: Package binary
-        run: npx pkg dist/index.js --targets ${{ matrix.target }} --output ${{ matrix.output }}
-        working-directory: cli
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cli-${{ matrix.os }}
-          path: cli/${{ matrix.output }}
+          node-version: 20
+          cache: npm
 
-  # ── Create GitHub Release + optional publishes ─────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package (Mac)
+        if: matrix.platform == 'mac'
+        run: npx electron-builder --mac --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Package (Windows)
+        if: matrix.platform == 'win'
+        run: npx electron-builder --win --publish never
+
+      - name: Package (Linux)
+        if: matrix.platform == 'linux'
+        run: npx electron-builder --linux --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: |
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: ignore
+
   release:
-    needs: [build-mac-app, build-windows-app, build-linux-app, build-vscode, build-cli]
+    needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -130,33 +78,26 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
-          files: release-assets/*
+          name: Ramanujan ${{ github.ref_name }}
+          body: |
+            ## Ramanujan ${{ github.ref_name }}
 
-      # npm publish (skips gracefully if NPM_TOKEN not set)
-      - name: Install CLI deps
-        run: npm install
-        working-directory: cli
+            Built by [Avinash Singh](https://github.com/avithehacker)
 
-      - name: Publish CLI to npm
-        continue-on-error: true
-        run: npm publish --access public
-        working-directory: cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            ### Download
+            | Platform | File |
+            |----------|------|
+            | macOS Apple Silicon | `Ramanujan-*-arm64-mac.zip` |
+            | macOS Intel | `Ramanujan-*-x64-mac.zip` |
+            | Windows | `Ramanujan-*-Setup.exe` |
+            | Linux | `Ramanujan-*-x86_64.AppImage` |
 
-      # VS Code Marketplace (skips gracefully if VSCE_PAT not set)
-      - name: Install VS Code extension deps
-        run: npm install
-        working-directory: vscode
+            ### First run
+            Ramanujan sets up a local AI model (Llama 3.2 1B) automatically on first launch.
+            Connect GitHub Models or Gemini for free cloud AI, or add Claude/ChatGPT API keys in Settings.
 
-      - name: Build VS Code extension
-        run: npm run build
-        working-directory: vscode
-
-      - name: Publish to VS Code Marketplace
-        continue-on-error: true
-        run: npx vsce publish --no-dependencies
-        working-directory: vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+            **macOS**: Unzip → drag to Applications → right-click → Open (first launch only, to bypass Gatekeeper)
+            **Windows**: Run the `.exe` installer
+            **Linux**: `chmod +x *.AppImage` then run
+          files: release-assets/**/*
+          draft: false
