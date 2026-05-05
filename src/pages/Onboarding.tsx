@@ -16,6 +16,7 @@ interface StepState {
 const PROVIDER_INFO: Record<string, { name: string; tagline: string; color: string; placeholder: string; keysUrl: string }> = {
   anthropic: { name: 'Claude',  tagline: 'by Anthropic', color: '#c96442', placeholder: 'sk-ant-...', keysUrl: 'https://console.anthropic.com/account/keys' },
   openai:    { name: 'ChatGPT', tagline: 'by OpenAI',    color: '#19c37d', placeholder: 'sk-...',      keysUrl: 'https://platform.openai.com/api-keys' },
+  google:    { name: 'Gemini',  tagline: 'by Google',    color: '#4285f4', placeholder: 'AIza...',     keysUrl: 'https://aistudio.google.com/app/apikey' },
 }
 
 function StepRow({ step }: { step: StepState }) {
@@ -65,6 +66,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [providers, setProviders] = useState<Record<string, { key: string; testing: boolean; tested: boolean; ok: boolean; error: string }>>({
     anthropic: { key: '', testing: false, tested: false, ok: false, error: '' },
     openai:    { key: '', testing: false, tested: false, ok: false, error: '' },
+    google:    { key: '', testing: false, tested: false, ok: false, error: '' },
   })
   const [expanded, setExpanded] = useState<string | null>(null)
   const [githubFlow, setGithubFlow] = useState<GithubFlowState | null>(null)
