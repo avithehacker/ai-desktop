@@ -73,7 +73,7 @@ app.whenReady().then(async () => {
     const iconPath = path.join(__dirname, '../../build/icon.icns')
     try {
       const icon = nativeImage.createFromPath(iconPath)
-      if (!icon.isEmpty()) app.dock.setIcon(icon)
+      if (!icon.isEmpty()) app.dock?.setIcon(icon)
     } catch {}
   }
 
