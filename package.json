@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
-    "better-sqlite3": "^9.4.3",
+    "better-sqlite3": "^12.9.0",
     "keytar": "^7.9.0",
     "ollama": "^0.5.0",
     "openai": "^4.47.1",
@@ -28,12 +28,12 @@
     "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.10",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
     "@types/react-syntax-highlighter": "^15.5.13",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
     "electron": "^41.5.0",
@@ -45,12 +45,15 @@
     "wait-on": "^7.2.0"
   },
   "build": {
+    "afterPack": "./afterPack.js",
     "appId": "com.ramanujan.app",
     "productName": "Ramanujan",
     "icon": "build/icon",
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
+      "hardenedRuntime": false,
+      "identity": null,
       "target": [
         "dmg"
       ]
