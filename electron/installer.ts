@@ -18,7 +18,7 @@ export type InstallStep =
   | { step: 'model-ready'; model: string }
   | { step: 'error'; message: string }
 
-export const DEFAULT_MODEL = 'gemma2:2b'
+export const DEFAULT_MODEL = 'llama3.2:1b'
 
 function downloadFile(url: string, dest: string, onProgress: (pct: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {

@@ -13,7 +13,7 @@ export default function InputBar({ onSend, isStreaming }: InputBarProps) {
     const ta = textareaRef.current
     if (!ta) return
     ta.style.height = 'auto'
-    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px'
+    ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'
   }, [text])
 
   useEffect(() => { textareaRef.current?.focus() }, [])
@@ -35,28 +35,51 @@ export default function InputBar({ onSend, isStreaming }: InputBarProps) {
   const canSend = text.trim().length > 0 && !isStreaming
 
   return (
-    <div className="px-4 pb-4 no-drag">
-      <div className="flex items-end gap-3 p-3 rounded-2xl"
-        style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+    <div className="no-drag" style={{ padding: '0 28px 20px', maxWidth: '42rem', margin: '0 auto', width: '100%' }}>
+      <div style={{
+        display: 'flex', alignItems: 'flex-end', gap: 10,
+        border: '1px solid var(--border)',
+        borderRadius: 14, padding: '10px 10px 10px 16px',
+        background: 'var(--bg-primary)',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+      }}
+        onFocusCapture={e => { const el = e.currentTarget; el.style.borderColor = 'var(--text-muted)'; el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)' }}
+        onBlurCapture={e => { const el = e.currentTarget; el.style.borderColor = 'var(--border)'; el.style.boxShadow = '0 1px 6px rgba(0,0,0,0.05)' }}
+      >
         <textarea
           ref={textareaRef}
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isStreaming ? 'Thinking…' : 'Message… (⇧↵ for new line)'}
+          placeholder={isStreaming ? 'Thinking…' : 'Message…'}
           rows={1}
           disabled={isStreaming}
-          className="flex-1 resize-none bg-transparent outline-none text-sm leading-relaxed"
-          style={{ color: 'var(--text-primary)', maxHeight: '200px', overflowY: 'auto' }}
+          style={{
+            flex: 1, resize: 'none', background: 'transparent', outline: 'none',
+            border: 'none', fontSize: 14, lineHeight: 1.6,
+            color: 'var(--text-primary)', maxHeight: 180, overflowY: 'auto',
+            fontFamily: 'Inter, system-ui, sans-serif',
+          }}
         />
-        <button onClick={handleSend} disabled={!canSend}
-          className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150"
-          style={{ background: canSend ? 'var(--accent)' : 'var(--bg-elevated)', color: canSend ? 'white' : 'var(--text-muted)' }}>
+        <button
+          onClick={handleSend}
+          disabled={!canSend}
+          style={{
+            flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: canSend ? 'var(--text-primary)' : 'transparent',
+            border: `1px solid ${canSend ? 'transparent' : 'var(--border)'}`,
+            color: canSend ? 'var(--bg-primary)' : 'var(--text-muted)',
+            cursor: canSend ? 'pointer' : 'default',
+            transition: 'all 0.15s',
+          }}
+        >
           {isStreaming ? (
-            <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
+            <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
           ) : (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 12V2M2 7l5-5 5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M6.5 11V2M2 6.5l4.5-4.5 4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}
         </button>

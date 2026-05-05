@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Message, providerColor, Provider } from '../types'
+import { Message } from '../types'
 
 interface MessageBubbleProps {
   message: Message
@@ -19,75 +19,43 @@ function CodeBlock({ language, children }: { language: string; children: string 
   }
 
   return (
-    <div className="relative group rounded-xl overflow-hidden my-3" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}>
-      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-        <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{language || 'code'}</span>
-        <button
-          onClick={handleCopy}
-          className="text-xs px-2 py-1 rounded transition-all duration-150"
-          style={{ color: 'var(--text-muted)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+    <div style={{ borderRadius: 10, overflow: 'hidden', margin: '12px 0', border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
+        <span style={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-muted)' }}>{language || 'code'}</span>
+        <button onClick={handleCopy} style={{ fontSize: 11, color: copied ? 'var(--green)' : 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+          onMouseEnter={e => { if (!copied) e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { if (!copied) e.currentTarget.style.color = 'var(--text-muted)' }}
         >
-          {copied ? '✓ Copied' : 'Copy'}
+          {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm m-0" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+      <pre style={{ margin: 0, padding: '14px', overflowX: 'auto', fontSize: 13, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.6 }}>
         <code style={{ color: 'var(--text-primary)' }}>{children}</code>
       </pre>
     </div>
   )
 }
 
-const markdownComponents = {
+const md: any = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '')
-    const lang = match ? match[1] : ''
-    if (!inline) {
-      return <CodeBlock language={lang}>{String(children).replace(/\n$/, '')}</CodeBlock>
-    }
-    return (
-      <code
-        className="font-mono text-sm px-1.5 py-0.5 rounded"
-        style={{ background: 'var(--bg-tertiary)', color: 'var(--accent-light)' }}
-        {...props}
-      >
-        {children}
-      </code>
-    )
+    if (!inline) return <CodeBlock language={match?.[1] || ''}>{String(children).replace(/\n$/, '')}</CodeBlock>
+    return <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.875em', background: 'var(--bg-tertiary)', borderRadius: 4, padding: '1px 5px', color: 'var(--text-primary)' }} {...props}>{children}</code>
   },
-  p: ({ children }: any) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
-  ul: ({ children }: any) => <ul className="mb-3 pl-4 space-y-1 list-disc">{children}</ul>,
-  ol: ({ children }: any) => <ol className="mb-3 pl-4 space-y-1 list-decimal">{children}</ol>,
-  li: ({ children }: any) => <li className="leading-relaxed">{children}</li>,
-  h1: ({ children }: any) => <h1 className="text-xl font-semibold mb-3 mt-4">{children}</h1>,
-  h2: ({ children }: any) => <h2 className="text-lg font-semibold mb-2 mt-4">{children}</h2>,
-  h3: ({ children }: any) => <h3 className="text-base font-semibold mb-2 mt-3">{children}</h3>,
-  blockquote: ({ children }: any) => (
-    <blockquote className="border-l-2 pl-4 my-3 italic" style={{ borderColor: 'var(--accent)', color: 'var(--text-secondary)' }}>
-      {children}
-    </blockquote>
-  ),
-  a: ({ href, children }: any) => (
-    <a href={href} className="underline" style={{ color: 'var(--accent-light)' }} target="_blank" rel="noopener noreferrer">
-      {children}
-    </a>
-  ),
-  strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
-  hr: () => <hr className="my-4" style={{ borderColor: 'var(--border)' }} />,
-  table: ({ children }: any) => (
-    <div className="overflow-x-auto my-3">
-      <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>{children}</table>
-    </div>
-  ),
-  th: ({ children }: any) => (
-    <th className="px-3 py-2 text-left font-medium" style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-      {children}
-    </th>
-  ),
-  td: ({ children }: any) => (
-    <td className="px-3 py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>{children}</td>
-  ),
+  p: ({ children }: any) => <p style={{ margin: '0 0 10px', lineHeight: 1.65 }}>{children}</p>,
+  ul: ({ children }: any) => <ul style={{ margin: '0 0 10px', paddingLeft: 20, lineHeight: 1.65 }}>{children}</ul>,
+  ol: ({ children }: any) => <ol style={{ margin: '0 0 10px', paddingLeft: 20, lineHeight: 1.65 }}>{children}</ol>,
+  li: ({ children }: any) => <li style={{ marginBottom: 3, lineHeight: 1.65 }}>{children}</li>,
+  h1: ({ children }: any) => <h1 style={{ fontSize: '1.15em', fontWeight: 600, margin: '16px 0 6px' }}>{children}</h1>,
+  h2: ({ children }: any) => <h2 style={{ fontSize: '1.05em', fontWeight: 600, margin: '14px 0 5px' }}>{children}</h2>,
+  h3: ({ children }: any) => <h3 style={{ fontSize: '1em', fontWeight: 600, margin: '12px 0 4px' }}>{children}</h3>,
+  blockquote: ({ children }: any) => <blockquote style={{ borderLeft: '2px solid var(--border)', paddingLeft: 14, margin: '8px 0', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{children}</blockquote>,
+  a: ({ href, children }: any) => <a href={href} style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 2 }} target="_blank" rel="noopener noreferrer">{children}</a>,
+  strong: ({ children }: any) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+  hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '14px 0' }} />,
+  table: ({ children }: any) => <div style={{ overflowX: 'auto', margin: '8px 0' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13 }}>{children}</table></div>,
+  th: ({ children }: any) => <th style={{ padding: '6px 12px', textAlign: 'left', fontWeight: 500, color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>{children}</th>,
+  td: ({ children }: any) => <td style={{ padding: '6px 12px', borderBottom: '1px solid var(--border-subtle)' }}>{children}</td>,
 }
 
 export default function MessageBubble({ message, isStreaming, streamingText }: MessageBubbleProps) {
@@ -96,48 +64,30 @@ export default function MessageBubble({ message, isStreaming, streamingText }: M
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-6 animate-slide-up">
-        <div
-          className="max-w-[70%] px-4 py-3 rounded-2xl rounded-tr-md selectable"
-          style={{ background: 'var(--accent)', color: 'white' }}
-        >
-          <div className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+        <div style={{
+          maxWidth: '72%', padding: '10px 14px',
+          borderRadius: '16px 16px 4px 16px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border)',
+          fontSize: 14, lineHeight: 1.6,
+          color: 'var(--text-primary)',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }} className="selectable">
+          {message.content}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex gap-3 mb-6 animate-slide-up">
-      {/* Avatar */}
-      <div
-        className="w-7 h-7 rounded-lg shrink-0 mt-1 flex items-center justify-center text-xs font-semibold"
-        style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
-      >
-        ✦
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div
-          className="text-sm leading-relaxed selectable"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={markdownComponents as any}
-          >
-            {content}
-          </ReactMarkdown>
-          {isStreaming && content !== undefined && (
-            <span className="streaming-cursor" />
-          )}
-        </div>
-
-        {message.model && !isStreaming && (
-          <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-            {message.model}
-          </div>
-        )}
+    <div style={{ marginBottom: 24 }}>
+      <div className="selectable" style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text-primary)' }}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>
+          {content}
+        </ReactMarkdown>
+        {isStreaming && <span className="streaming-cursor" />}
       </div>
     </div>
   )

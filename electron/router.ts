@@ -20,65 +20,50 @@ interface Message {
   content: string
 }
 
+// ── System prompt ──────────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are the AI assistant embedded in Ramanujan — a desktop AI app built by Avinash Singh, a Product Manager at Mahindra.
+
+## About Ramanujan
+Ramanujan is a macOS desktop app that brings together local and cloud AI models in one minimal, privacy-first interface. It was built by Avinash Singh as a side project to explore intelligent model routing and token-efficient AI interactions.
+
+The app is named after Srinivasa Ramanujan — the self-taught Indian mathematician known for extraordinary intuition and depth of thought.
+
+## How it works
+Ramanujan uses a smart routing engine that automatically selects the best model for each message:
+1. It classifies the user's intent (coding, reasoning, chat, rewrite, search, image)
+2. It scores all available models based on intent, difficulty, and output length
+3. It routes to the best match — local for simple/quick tasks, cloud for complex ones
+4. If the response is poor quality, it falls back to the next best model automatically
+5. It logs interactions and adjusts model weights over time (adaptive learning)
+
+## Supported models & providers
+- **Local (offline):** Llama 3.2 1B via Ollama — runs entirely on-device, no internet needed, fastest for simple tasks
+- **GitHub Models:** GPT-4o mini — free with any GitHub account, runs on Microsoft Azure
+- **Google Gemini:** Gemini 2.0 Flash — free tier (15 req/min), requires a Google account
+- **Anthropic Claude:** Claude Haiku — best for reasoning and coding, requires a paid API key from console.anthropic.com
+- **OpenAI ChatGPT:** GPT-4o mini — strong general-purpose model, requires a paid API key from platform.openai.com
+
+## Privacy & storage
+- All API keys are stored in the macOS Keychain — never in plain text or config files
+- Local model conversations never leave the device
+- Chat history is stored in a local SQLite database
+
+## Builder
+Built entirely by Avinash Singh. If someone asks who made this, what Ramanujan is, or how it works — answer using the above. Be concise unless asked for more detail.`
+
 // ── Step 1: Prompt Compression ─────────────────────────────────────────────────
-// Skips short prompts. Calls Ollama with 2s timeout; returns original on failure.
+// No-op: rule-based routing is fast enough; LLM pre-processing adds latency.
 
 async function compressPrompt(prompt: string): Promise<string> {
-  if (prompt.length < 200) return prompt
-  try {
-    const res = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma2:2b',
-        prompt: `Compress this to ~60% length. Remove filler words, keep all meaning. Return ONLY the compressed text.\n\n${prompt}`,
-        stream: false,
-        options: { num_predict: Math.ceil(prompt.split(/\s+/).length * 0.7) },
-      }),
-      signal: AbortSignal.timeout(2000),
-    })
-    if (!res.ok) return prompt
-    const data = await res.json() as { response?: string }
-    const out = data.response?.trim() || ''
-    return out.length > 20 && out.length < prompt.length * 0.95 ? out : prompt
-  } catch {
-    return prompt
-  }
+  return prompt
 }
 
 // ── Step 2: Classifier ─────────────────────────────────────────────────────────
-// Calls Ollama for JSON classification with 3s timeout; falls back to rule-based.
+// Rule-based only — avoids a blocking Ollama call before every response.
 
 async function classifyPrompt(prompt: string): Promise<Classification> {
-  const fallback = ruleBasedClassify(prompt)
-  try {
-    const res = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma2:2b',
-        prompt: `Classify this prompt. Return ONLY valid JSON, no explanation.
-Prompt: "${prompt.slice(0, 300)}"
-Return: {"intent":"coding|rewrite|chat|reasoning|image|search","difficulty":1-5,"output_length":"short|medium|long","needs_fresh_data":true|false}`,
-        stream: false,
-        options: { num_predict: 60 },
-      }),
-      signal: AbortSignal.timeout(3000),
-    })
-    if (!res.ok) return fallback
-    const data = await res.json() as { response?: string }
-    const match = (data.response || '').match(/\{[\s\S]*?\}/)
-    if (!match) return fallback
-    const p = JSON.parse(match[0])
-    return {
-      intent: (['coding','rewrite','chat','reasoning','image','search'].includes(p.intent) ? p.intent : fallback.intent) as Intent,
-      difficulty: Math.min(5, Math.max(1, Number(p.difficulty) || fallback.difficulty)),
-      output_length: (['short','medium','long'].includes(p.output_length) ? p.output_length : fallback.output_length) as OutputLength,
-      needs_fresh_data: typeof p.needs_fresh_data === 'boolean' ? p.needs_fresh_data : fallback.needs_fresh_data,
-    }
-  } catch {
-    return fallback
-  }
+  return ruleBasedClassify(prompt)
 }
 
 function ruleBasedClassify(prompt: string): Classification {
@@ -175,7 +160,7 @@ async function ollamaAvailable(): Promise<boolean> {
 }
 
 const PROVIDER_MAP: Record<ModelKey, { provider: string; model: string }> = {
-  local:  { provider: 'ollama',     model: 'gemma2:2b' },
+  local:  { provider: 'ollama',     model: 'llama3.2:1b' },
   claude: { provider: 'anthropic',  model: 'claude-haiku-4-5' },
   openai: { provider: 'openai',     model: 'gpt-4o-mini' },
   github: { provider: 'github',     model: 'gpt-4o-mini' },
@@ -212,6 +197,11 @@ export async function route(
   const prompt = messages[messages.length - 1]?.content || ''
   const start = Date.now()
 
+  // Prepend system prompt if not already present
+  const messagesWithSystem: Message[] = messages[0]?.role === 'system'
+    ? messages
+    : [{ role: 'system', content: SYSTEM_PROMPT }, ...messages]
+
   // Determine available providers
   const available = new Set<ModelKey>()
   if (await ollamaAvailable()) available.add('local')
@@ -228,8 +218,8 @@ export async function route(
   ])
 
   const workingMessages = compressed !== prompt
-    ? [...messages.slice(0, -1), { ...messages[messages.length - 1], content: compressed }]
-    : messages
+    ? [...messagesWithSystem.slice(0, -1), { ...messagesWithSystem[messagesWithSystem.length - 1], content: compressed }]
+    : messagesWithSystem
 
   // Steps 3–4: score + select
   const weights = db?.getWeightsForIntent(meta.intent) ?? { local: 1, claude: 1, openai: 1 }

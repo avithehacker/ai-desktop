@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface OnboardingProps {
   onComplete: () => void
@@ -13,64 +13,261 @@ interface StepState {
   percent?: number
 }
 
-const PROVIDER_INFO: Record<string, { name: string; tagline: string; color: string; placeholder: string; keysUrl: string }> = {
-  anthropic: { name: 'Claude',  tagline: 'by Anthropic', color: '#c96442', placeholder: 'sk-ant-...', keysUrl: 'https://console.anthropic.com/account/keys' },
-  openai:    { name: 'ChatGPT', tagline: 'by OpenAI',    color: '#19c37d', placeholder: 'sk-...',      keysUrl: 'https://platform.openai.com/api-keys' },
-  google:    { name: 'Gemini',  tagline: 'by Google',    color: '#4285f4', placeholder: 'AIza...',     keysUrl: 'https://aistudio.google.com/app/apikey' },
+interface ProviderState {
+  key: string
+  testing: boolean
+  tested: boolean
+  ok: boolean
+  error: string
 }
 
-function StepRow({ step }: { step: StepState }) {
-  const icon =
-    step.status === 'done'      ? <span style={{ color: 'var(--green)' }}>✓</span>
-    : step.status === 'error'   ? <span style={{ color: 'var(--red)' }}>✗</span>
-    : step.status === 'running' ? <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span>
-    : <span style={{ color: 'var(--text-muted)' }}>○</span>
+// ── Brand icons ───────────────────────────────────────────────────────────────
+
+function GitHubIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+  )
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+  )
+}
+
+// ── Step row (setup screen) ───────────────────────────────────────────────────
+
+function StepRow({ step, index, isLast }: { step: StepState; index: number; isLast: boolean }) {
+  const done    = step.status === 'done'
+  const running = step.status === 'running'
+  const error   = step.status === 'error'
+  const waiting = step.status === 'waiting'
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-3">
-        <span className="text-sm w-4 text-center shrink-0">{icon}</span>
-        <span className="text-sm flex-1" style={{ color: step.status === 'waiting' ? 'var(--text-muted)' : step.status === 'error' ? 'var(--red)' : 'var(--text-primary)', fontWeight: step.status === 'running' ? 500 : 400 }}>
-          {step.label}
-        </span>
-        {step.detail && <span className="text-xs" style={{ color: step.status === 'error' ? 'var(--red)' : 'var(--text-muted)' }}>{step.detail}</span>}
+    <div style={{ display: 'flex', gap: 16 }}>
+      {/* Left: circle + connector */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: done ? '#16a34a' : error ? '#dc2626' : running ? '#1a1a1a' : 'transparent',
+          border: `2px solid ${done ? '#16a34a' : error ? '#dc2626' : running ? '#1a1a1a' : '#e8e8e8'}`,
+          transition: 'all 0.35s ease',
+        }}>
+          {done    && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7L5.5 10L11.5 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          {error   && <span style={{ color: '#fff', fontSize: 13, lineHeight: 1 }}>✕</span>}
+          {running && <span style={{ color: '#fff', fontSize: 12, display: 'inline-block', animation: 'spin 1s linear infinite' }}>◌</span>}
+          {waiting && <span style={{ color: '#bbb', fontSize: 12, fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>{index + 1}</span>}
+        </div>
+        {!isLast && (
+          <div style={{ width: 2, flex: 1, minHeight: 16, background: done ? '#16a34a33' : '#e8e8e8', borderRadius: 1, marginTop: 4, transition: 'background 0.35s ease' }} />
+        )}
       </div>
-      {step.status === 'running' && typeof step.percent === 'number' && (
-        <div className="pl-7">
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${step.percent}%`, background: 'var(--accent)' }} />
+
+      {/* Right: text */}
+      <div style={{ paddingTop: 6, paddingBottom: isLast ? 0 : 20, flex: 1 }}>
+        <div style={{
+          fontSize: 14,
+          fontWeight: running ? 500 : 400,
+          color: waiting ? '#aaa' : error ? '#dc2626' : '#1a1a1a',
+          lineHeight: 1.4,
+          transition: 'color 0.2s',
+        }}>
+          {step.label}
+        </div>
+        {step.detail && (
+          <div style={{ fontSize: 12, color: error ? '#dc2626' : '#999', marginTop: 3 }}>{step.detail}</div>
+        )}
+        {running && typeof step.percent === 'number' && (
+          <div style={{ marginTop: 10, height: 3, borderRadius: 99, background: '#f0f0f0', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 99, background: '#1a1a1a', width: `${step.percent}%`, transition: 'width 0.5s ease' }} />
           </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Provider card (cloud screen) ──────────────────────────────────────────────
+
+const FREE_PROVIDERS = {
+  github: {
+    name: 'GitHub Models',
+    model: 'GPT-4o mini',
+    badge: 'Free',
+    badgeSub: 'with any GitHub account',
+    steps: ['Go to GitHub → Settings → Developer settings → Tokens', 'Click "Generate new token (classic)"', 'No scopes needed — scroll down and click Generate', 'Copy and paste below'],
+    placeholder: 'github_pat_...',
+    keysUrl: 'https://github.com/settings/tokens/new?description=Ramanujan+AI&scopes=',
+    testProvider: 'github',
+    iconBg: '#24292e',
+    icon: <GitHubIcon />,
+  },
+  google: {
+    name: 'Gemini',
+    model: 'Flash 2.0 · 15 req/min',
+    badge: 'Free tier',
+    badgeSub: 'Google account required',
+    steps: ['Go to Google AI Studio (aistudio.google.com)', 'Click "Get API key" → Create API key', 'Copy and paste below'],
+    placeholder: 'AIza...',
+    keysUrl: 'https://aistudio.google.com/app/apikey',
+    testProvider: 'google',
+    iconBg: '#ffffff',
+    icon: <GoogleIcon />,
+  },
+}
+
+const PAID_PROVIDERS = {
+  anthropic: {
+    name: 'Claude',
+    model: 'Haiku · best for reasoning',
+    badge: 'Paid',
+    badgeSub: 'console.anthropic.com',
+    steps: ['Go to console.anthropic.com/account/keys', 'Create an API key', 'Copy and paste below'],
+    placeholder: 'sk-ant-...',
+    keysUrl: 'https://console.anthropic.com/account/keys',
+    testProvider: 'anthropic',
+    iconBg: '#c96442',
+    icon: <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>A</span>,
+  },
+  openai: {
+    name: 'ChatGPT',
+    model: 'GPT-4o mini · general purpose',
+    badge: 'Paid',
+    badgeSub: 'platform.openai.com',
+    steps: ['Go to platform.openai.com/api-keys', 'Create an API key', 'Copy and paste below'],
+    placeholder: 'sk-...',
+    keysUrl: 'https://platform.openai.com/api-keys',
+    testProvider: 'openai',
+    iconBg: '#19c37d',
+    icon: <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>G</span>,
+  },
+}
+
+const PROVIDERS = { ...FREE_PROVIDERS, ...PAID_PROVIDERS }
+
+interface CardProps {
+  id: string
+  state: ProviderState
+  expanded: boolean
+  onGetKey: () => void
+  onKeyChange: (v: string) => void
+  onSave: () => void
+}
+
+function ProviderCard({ id, state, expanded, onGetKey, onKeyChange, onSave }: CardProps) {
+  const p = PROVIDERS[id as keyof typeof PROVIDERS]
+  const connected = state.tested && state.ok
+
+  return (
+    <div style={{
+      borderRadius: 10,
+      border: `1px solid ${connected ? '#16a34a' : expanded ? '#1a1a1a' : '#e8e8e8'}`,
+      background: '#fff',
+      overflow: 'hidden',
+      transition: 'border-color 0.15s',
+    }}>
+      {/* Single compact row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px' }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 7, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: p.iconBg,
+          border: id === 'google' ? '1px solid #e8e8e8' : 'none',
+          color: id === 'github' ? '#fff' : undefined,
+          fontSize: 12,
+        }}>
+          {p.icon}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>{p.name}</span>
+          <span style={{ fontSize: 12, color: '#bbb', marginLeft: 6 }}>{p.model}</span>
+        </div>
+
+        {connected ? (
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', flexShrink: 0 }}>✓ Connected</span>
+        ) : (
+          <>
+            <span style={{ fontSize: 11, fontWeight: 600, color: p.badge === 'Paid' ? '#bbb' : '#16a34a', flexShrink: 0 }}>{p.badge}</span>
+            <button onClick={onGetKey} style={{
+              fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 6, flexShrink: 0,
+              background: expanded ? '#1a1a1a' : '#f4f4f4',
+              color: expanded ? '#fff' : '#444',
+              border: '1px solid #e0e0e0', cursor: 'pointer', transition: 'all 0.15s',
+            }}
+              onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = '#eaeaea' }}
+              onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = '#f4f4f4' }}
+            >
+              {expanded ? 'Opening…' : 'Connect'}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Expanded input */}
+      {expanded && !connected && (
+        <div style={{ borderTop: '1px solid #f0f0f0', padding: '10px 12px', background: '#fafafa' }}>
+          <p style={{ fontSize: 11, color: '#999', margin: '0 0 8px', lineHeight: 1.5 }}>
+            {p.steps[p.steps.length - 2]} · {p.steps[p.steps.length - 1]}
+          </p>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input autoFocus type="password" placeholder={p.placeholder} value={state.key}
+              onChange={e => onKeyChange(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && state.key.trim()) onSave() }}
+              style={{
+                flex: 1, padding: '7px 10px', borderRadius: 6, fontSize: 12,
+                fontFamily: 'JetBrains Mono, monospace',
+                background: '#fff',
+                border: `1px solid ${state.tested ? (state.ok ? '#16a34a' : '#dc2626') : '#e0e0e0'}`,
+                color: '#1a1a1a', outline: 'none',
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#1a1a1a' }}
+              onBlur={e => { if (!state.tested) e.currentTarget.style.borderColor = '#e0e0e0' }}
+            />
+            <button onClick={onSave} disabled={!state.key.trim() || state.testing}
+              style={{
+                padding: '7px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                background: '#1a1a1a', color: '#fff', border: 'none',
+                cursor: state.key.trim() && !state.testing ? 'pointer' : 'default',
+                opacity: !state.key.trim() || state.testing ? 0.35 : 1,
+              }}
+            >
+              {state.testing ? '…' : 'Save'}
+            </button>
+          </div>
+          {state.tested && !state.ok && state.error && (
+            <p style={{ fontSize: 11, color: '#dc2626', margin: '6px 0 0' }}>{state.error}</p>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-interface GithubFlowState {
-  deviceCode: string
-  userCode: string
-  verificationUri: string
-  interval: number
-  polling: boolean
-  ok: boolean
-  copied: boolean
-}
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [screen, setScreen] = useState<Screen>('setup')
   const [steps, setSteps] = useState<StepState[]>([
-    { label: 'Installing Ollama (local AI engine)', status: 'waiting' },
-    { label: 'Downloading Gemma 2B (1.6 GB)', status: 'waiting' },
+    { label: 'Install Ollama  ·  local AI runtime', status: 'waiting' },
+    { label: 'Download Llama 3.2 1B  ·  780 MB', status: 'waiting' },
   ])
   const [setupError, setSetupError] = useState(false)
-  const [providers, setProviders] = useState<Record<string, { key: string; testing: boolean; tested: boolean; ok: boolean; error: string }>>({
+  const [providers, setProviders] = useState<Record<string, ProviderState>>({
+    github:    { key: '', testing: false, tested: false, ok: false, error: '' },
+    google:    { key: '', testing: false, tested: false, ok: false, error: '' },
     anthropic: { key: '', testing: false, tested: false, ok: false, error: '' },
     openai:    { key: '', testing: false, tested: false, ok: false, error: '' },
-    google:    { key: '', testing: false, tested: false, ok: false, error: '' },
   })
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [githubFlow, setGithubFlow] = useState<GithubFlowState | null>(null)
-  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const updateStep = (i: number, patch: Partial<StepState>) =>
     setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, ...patch } : s))
@@ -79,22 +276,20 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   const runSetup = async () => {
     if (!window.electronAPI) { setScreen('cloud'); return }
-
     setSetupError(false)
     setSteps([
-      { label: 'Installing Ollama (local AI engine)', status: 'waiting' },
-      { label: 'Downloading Gemma 2B (1.6 GB)', status: 'waiting' },
+      { label: 'Install Ollama  ·  local AI runtime', status: 'waiting' },
+      { label: 'Download Llama 3.2 1B  ·  780 MB', status: 'waiting' },
     ])
 
-    // Step 1: Install Ollama
-    updateStep(0, { status: 'running', detail: 'Checking...' })
+    updateStep(0, { status: 'running', detail: 'Checking…' })
     let ollamaOk = false
-    const cleanup0 = window.electronAPI.onInstallProgress((p: any) => {
-      if (p.step === 'checking')           updateStep(0, { detail: 'Checking...' })
+    const c0 = window.electronAPI.onInstallProgress((p: any) => {
+      if (p.step === 'checking')           updateStep(0, { detail: 'Checking…' })
       if (p.step === 'ollama-found')       updateStep(0, { status: 'done', detail: '' })
       if (p.step === 'downloading-ollama') updateStep(0, { detail: `${p.percent}%`, percent: p.percent })
-      if (p.step === 'installing-ollama')  updateStep(0, { detail: 'Installing...' })
-      if (p.step === 'starting-ollama')    updateStep(0, { detail: 'Starting...' })
+      if (p.step === 'installing-ollama')  updateStep(0, { detail: 'Installing…' })
+      if (p.step === 'starting-ollama')    updateStep(0, { detail: 'Starting…' })
     })
     try {
       await window.electronAPI.installOllama()
@@ -103,14 +298,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     } catch (e: any) {
       updateStep(0, { status: 'error', detail: e.message || 'Failed' })
     }
-    cleanup0()
-
+    c0()
     if (!ollamaOk) { setSetupError(true); return }
 
-    // Step 2: Pull Gemma 2B
     updateStep(1, { status: 'running', percent: 0, detail: '0%' })
     let modelOk = false
-    const cleanup1 = window.electronAPI.onInstallProgress((p: any) => {
+    const c1 = window.electronAPI.onInstallProgress((p: any) => {
       if (p.step === 'pulling-model') updateStep(1, { percent: p.percent, detail: `${p.percent}%` })
       if (p.step === 'model-ready')   updateStep(1, { status: 'done', detail: '' })
     })
@@ -121,283 +314,164 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     } catch (e: any) {
       updateStep(1, { status: 'error', detail: e.message || 'Failed' })
     }
-    cleanup1()
-
+    c1()
     if (!modelOk) { setSetupError(true); return }
-
-    // Both done — advance to cloud setup
     setScreen('cloud')
   }
 
-  const handleConnect = (provider: string) => {
-    const url = PROVIDER_INFO[provider].keysUrl
+  const handleGetKey = (id: string) => {
+    const url = PROVIDERS[id as keyof typeof PROVIDERS].keysUrl
     if (window.electronAPI?.openExternal) window.electronAPI.openExternal(url)
     else window.open(url, '_blank')
-    setExpanded(provider)
+    setExpanded(id)
   }
 
-  const handleTest = async (provider: string) => {
+  const handleSave = async (id: string) => {
     if (!window.electronAPI) return
-    const key = providers[provider].key
+    const key = providers[id].key.trim()
     if (!key) return
-    setProviders(p => ({ ...p, [provider]: { ...p[provider], testing: true } }))
-    const result = await window.electronAPI.testApiKey(provider, key)
-    setProviders(p => ({ ...p, [provider]: { ...p[provider], testing: false, tested: true, ok: result.ok, error: result.error || '' } }))
-    if (result.ok) await window.electronAPI.setKey(provider, key)
-  }
-
-  const handleGithubConnect = async () => {
-    if (!window.electronAPI) return
-    const data = await window.electronAPI.githubStartDeviceFlow()
-    if (data.error) return
-    setGithubFlow({
-      deviceCode: data.device_code,
-      userCode: data.user_code,
-      verificationUri: data.verification_uri,
-      interval: data.interval || 5,
-      polling: true,
-      ok: false,
-      copied: false,
-    })
-    window.electronAPI.openExternal(data.verification_uri)
-    schedulePoll(data.device_code, data.interval || 5)
-  }
-
-  const schedulePoll = (deviceCode: string, interval: number) => {
-    if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
-    pollTimerRef.current = setTimeout(() => pollGithub(deviceCode, interval), interval * 1000)
-  }
-
-  const pollGithub = async (deviceCode: string, interval: number) => {
-    if (!window.electronAPI) return
-    const result = await window.electronAPI.githubPollDeviceFlow(deviceCode)
+    setProviders(p => ({ ...p, [id]: { ...p[id], testing: true } }))
+    const testProvider = PROVIDERS[id as keyof typeof PROVIDERS].testProvider
+    const result = await window.electronAPI.testApiKey(testProvider, key)
+    setProviders(p => ({ ...p, [id]: { ...p[id], testing: false, tested: true, ok: result.ok, error: result.error || '' } }))
     if (result.ok) {
-      setGithubFlow(prev => prev ? { ...prev, polling: false, ok: true } : null)
-      return
-    }
-    if (result.error === 'authorization_pending') {
-      schedulePoll(deviceCode, interval)
-    } else if (result.error === 'slow_down') {
-      schedulePoll(deviceCode, interval + 5)
-    } else {
-      setGithubFlow(prev => prev ? { ...prev, polling: false } : null)
+      await window.electronAPI.setKey(testProvider, key)
+      setExpanded(null)
     }
   }
 
-  const handleCopyCode = () => {
-    if (!githubFlow) return
-    navigator.clipboard.writeText(githubFlow.userCode)
-    setGithubFlow(prev => prev ? { ...prev, copied: true } : null)
-    setTimeout(() => setGithubFlow(prev => prev ? { ...prev, copied: false } : null), 2000)
-  }
-
-  const handleDone = async () => {
-    if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
+  const finish = async () => {
     if (window.electronAPI) await window.electronAPI.completeOnboarding()
     onComplete()
   }
 
-  const handleSkip = async () => {
-    if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
-    if (window.electronAPI) await window.electronAPI.completeOnboarding()
-    onComplete()
-  }
-
-  const anyConnected = Object.values(providers).some(p => p.ok) || githubFlow?.ok === true
+  const anyConnected = Object.values(providers).some(p => p.ok)
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full" style={{ background: 'var(--bg-primary)' }}>
-      <div className="drag-region absolute top-0 left-0 right-0 h-10" />
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', position: 'relative', overflowY: 'auto' }}>
+      <div className="drag-region" style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 44 }} />
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
 
-      <div className="w-full max-w-md px-6">
-        <div className="text-center mb-10">
-          <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4"
-            style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: '2rem', fontWeight: 300, color: 'var(--text-primary)', lineHeight: 1 }}>∑</span>
+      <div style={{ width: '100%', maxWidth: 400, padding: '32px 24px', animation: 'fadeUp 0.4s ease' }}>
+
+        {/* ── Header ── */}
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, margin: '0 auto 10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#f7f7f7', border: '1px solid #e8e8e8',
+          }}>
+            <span style={{ fontFamily: 'Georgia, serif', fontSize: '1.5rem', fontWeight: 300, color: '#1a1a1a', lineHeight: 1, userSelect: 'none' }}>∑</span>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 400, letterSpacing: '0.03em', color: 'var(--text-primary)' }}>
+          <h1 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.6rem', fontWeight: 400, letterSpacing: '0.05em', color: '#1a1a1a', margin: '0 0 4px' }}>
             Ramanujan
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            {screen === 'setup' ? 'Setting up your local AI…' : 'Connect a cloud AI to continue'}
+          <p style={{ fontSize: 12, color: '#999', margin: 0, fontWeight: 300 }}>
+            {screen === 'setup' ? 'Setting up your local AI engine' : 'Add a cloud model for harder tasks'}
           </p>
         </div>
 
+        {/* ── Setup screen ── */}
         {screen === 'setup' && (
-          <div className="space-y-5">
-            <div className="rounded-2xl p-5 space-y-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-              {steps.map((step, i) => <StepRow key={i} step={step} />)}
+          <div style={{ animation: 'fadeUp 0.3s ease' }}>
+            <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 16, padding: '24px 24px 8px' }}>
+              {steps.map((step, i) => (
+                <StepRow key={i} step={step} index={i} isLast={i === steps.length - 1} />
+              ))}
             </div>
 
             {setupError ? (
-              <div className="space-y-3">
-                <p className="text-sm text-center" style={{ color: 'var(--red)' }}>
-                  Setup failed. Check your internet connection and try again.
+              <div style={{ marginTop: 16, padding: '16px', borderRadius: 12, background: '#fff5f5', border: '1px solid #fecaca', textAlign: 'center' }}>
+                <p style={{ fontSize: 13, color: '#dc2626', margin: '0 0 12px' }}>
+                  Setup failed. Check your connection and try again.
                 </p>
-                <button onClick={runSetup}
-                  className="w-full py-3 rounded-xl font-semibold transition-all duration-200 hover:opacity-80 active:scale-[0.98]"
-                  style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-                  Retry Setup
+                <button onClick={runSetup} style={{ padding: '9px 24px', borderRadius: 8, fontSize: 13, fontWeight: 600, background: '#1a1a1a', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  Retry
                 </button>
               </div>
             ) : (
-              <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-                This only runs once. Do not close the app.
+              <p style={{ fontSize: 12, color: '#bbb', textAlign: 'center', marginTop: 16 }}>
+                Runs once · Do not close the app
               </p>
             )}
           </div>
         )}
 
+        {/* ── Cloud screen ── */}
         {screen === 'cloud' && (
-          <div className="space-y-5">
-            <div className="space-y-1">
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', fontWeight: 400, color: 'var(--text-primary)' }}>
-                Connect your AI
-              </h2>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-                For complex tasks. Local handles everything else.
-              </p>
+          <div style={{ animation: 'fadeUp 0.3s ease' }}>
+            {/* Free providers */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {Object.keys(FREE_PROVIDERS).map(id => (
+                <ProviderCard key={id} id={id} state={providers[id]} expanded={expanded === id}
+                  onGetKey={() => handleGetKey(id)}
+                  onKeyChange={v => setProviders(p => ({ ...p, [id]: { ...p[id], key: v, tested: false } }))}
+                  onSave={() => handleSave(id)} />
+              ))}
             </div>
 
-            <div className="space-y-2">
-              {/* GitHub OAuth card */}
-              <div className="rounded-2xl overflow-hidden"
-                style={{ border: `1px solid ${githubFlow?.ok ? 'var(--green)' : 'var(--border)'}`, background: 'var(--bg-secondary)' }}>
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)' }}>
-                    G
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>GitHub Models</div>
-                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>GPT-4o · Sign in with GitHub</div>
-                  </div>
-                  {githubFlow?.ok ? (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(22,163,74,0.1)', color: 'var(--green)' }}>
-                      Connected ✓
-                    </span>
-                  ) : (
-                    <button onClick={handleGithubConnect} disabled={githubFlow?.polling}
-                      className="text-sm font-semibold px-4 py-1.5 rounded-full transition-all duration-150 active:scale-95 disabled:opacity-50"
-                      style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-                      {githubFlow?.polling ? '…' : 'Sign in'}
-                    </button>
-                  )}
-                </div>
-                {githubFlow && !githubFlow.ok && (
-                  <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
-                    <p className="text-xs pt-3" style={{ color: 'var(--text-muted)' }}>
-                      Opening{' '}
-                      <button onClick={() => window.electronAPI?.openExternal(githubFlow.verificationUri)}
-                        className="underline" style={{ color: 'var(--accent-light)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>
-                        github.com/login/device
-                      </button>
-                      {' '}— enter this code:
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 px-4 py-2.5 rounded-xl text-center font-mono font-bold text-lg tracking-widest"
-                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', letterSpacing: '0.25em' }}>
-                        {githubFlow.userCode}
-                      </div>
-                      <button onClick={handleCopyCode}
-                        className="px-3 py-2.5 rounded-xl text-sm transition-all duration-150"
-                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: githubFlow.copied ? 'var(--green)' : 'var(--text-secondary)' }}>
-                        {githubFlow.copied ? '✓' : 'Copy'}
-                      </button>
-                    </div>
-                    {githubFlow.polling && (
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: 6 }}>◌</span>
-                        Waiting for authorization…
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* API key providers */}
-              {Object.entries(PROVIDER_INFO).map(([provider, info]) => {
-                const state = providers[provider]
-                const isConnected = state.tested && state.ok
-                const isOpen = expanded === provider
-                return (
-                  <div key={provider} className="rounded-2xl overflow-hidden"
-                    style={{ border: `1px solid ${isConnected ? 'var(--green)' : 'var(--border)'}`, background: 'var(--bg-secondary)' }}>
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
-                        style={{ background: `${info.color}18`, color: info.color }}>
-                        {info.name[0]}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{info.name}</div>
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{info.tagline}</div>
-                      </div>
-                      {isConnected ? (
-                        <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(22,163,74,0.1)', color: 'var(--green)' }}>
-                          Connected ✓
-                        </span>
-                      ) : (
-                        <button onClick={() => handleConnect(provider)}
-                          className="text-sm font-semibold px-4 py-1.5 rounded-full transition-all duration-150 active:scale-95"
-                          style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-                          Connect
-                        </button>
-                      )}
-                    </div>
-                    {(isOpen || isConnected) && (
-                      <div className="px-4 pb-4 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
-                        <p className="text-xs pt-3" style={{ color: 'var(--text-muted)' }}>Paste your API key</p>
-                        <div className="flex gap-2">
-                          <input
-                            autoFocus={isOpen && !isConnected}
-                            type="password"
-                            placeholder={info.placeholder}
-                            value={state.key}
-                            onChange={e => setProviders(p => ({ ...p, [provider]: { ...p[provider], key: e.target.value, tested: false } }))}
-                            onKeyDown={e => { if (e.key === 'Enter' && state.key) handleTest(provider) }}
-                            className="flex-1 px-3 py-2 rounded-lg text-sm font-mono outline-none"
-                            style={{
-                              background: 'var(--bg-tertiary)',
-                              border: `1px solid ${state.tested ? (state.ok ? 'var(--green)' : 'var(--red)') : 'var(--border)'}`,
-                              color: 'var(--text-primary)',
-                            }}
-                          />
-                          <button onClick={() => handleTest(provider)} disabled={!state.key || state.testing}
-                            className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40"
-                            style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-                            {state.testing ? '…' : 'Save'}
-                          </button>
-                        </div>
-                        {state.tested && !state.ok && state.error && (
-                          <p className="text-xs" style={{ color: 'var(--red)' }}>{state.error}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+            {/* Paid providers */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
+              <div style={{ flex: 1, height: 1, background: '#e8e8e8' }} />
+              <span style={{ fontSize: 11, color: '#bbb', fontWeight: 500, letterSpacing: '0.06em' }}>OR CONNECT A PAID API</span>
+              <div style={{ flex: 1, height: 1, background: '#e8e8e8' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {Object.keys(PAID_PROVIDERS).map(id => (
+                <ProviderCard key={id} id={id} state={providers[id]} expanded={expanded === id}
+                  onGetKey={() => handleGetKey(id)}
+                  onKeyChange={v => setProviders(p => ({ ...p, [id]: { ...p[id], key: v, tested: false } }))}
+                  onSave={() => handleSave(id)} />
+              ))}
             </div>
 
-            <button onClick={handleDone} disabled={!anyConnected}
-              className="w-full py-3 rounded-xl font-semibold transition-all duration-200 hover:opacity-80 active:scale-[0.98] disabled:opacity-40"
-              style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-              Open Ramanujan →
-            </button>
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <button
+                onClick={finish}
+                disabled={!anyConnected}
+                style={{
+                  width: '100%', padding: '13px 0', borderRadius: 12, fontSize: 14, fontWeight: 600,
+                  background: anyConnected ? '#1a1a1a' : '#f0f0f0',
+                  color: anyConnected ? '#fff' : '#bbb',
+                  border: 'none',
+                  cursor: anyConnected ? 'pointer' : 'default',
+                  transition: 'all 0.25s ease',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                {anyConnected ? 'Open Ramanujan →' : 'Connect one to continue'}
+              </button>
 
-            <button onClick={handleSkip}
-              className="w-full py-2 text-sm transition-all duration-150 hover:opacity-80"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-              Skip for now, use local only
-            </button>
+              <button
+                onClick={finish}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 12, color: '#bbb', padding: '8px 0',
+                  transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#888' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#bbb' }}
+              >
+                Skip for now · use local model only
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="absolute bottom-8 flex gap-2">
+      {/* Progress dots */}
+      <div style={{ position: 'fixed', bottom: 24, display: 'flex', gap: 6, alignItems: 'center' }}>
         {(['setup', 'cloud'] as Screen[]).map(s => (
-          <div key={s} className="w-1.5 h-1.5 rounded-full transition-all duration-300"
-            style={{ background: screen === s ? 'var(--accent)' : 'var(--border)' }} />
+          <div key={s} style={{
+            borderRadius: '50%',
+            width: screen === s ? 20 : 6,
+            height: 6,
+            background: screen === s ? '#1a1a1a' : '#e0e0e0',
+            transition: 'all 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+          }} />
         ))}
       </div>
     </div>

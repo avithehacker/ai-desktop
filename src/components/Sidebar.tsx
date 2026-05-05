@@ -11,142 +11,101 @@ interface SidebarProps {
   isSettingsActive: boolean
 }
 
-export default function Sidebar({
-  chats,
-  activeChatId,
-  onNewChat,
-  onSelectChat,
-  onDeleteChat,
-  onSettings,
-  isSettingsActive,
-}: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, onNewChat, onSelectChat, onDeleteChat, onSettings, isSettingsActive }: SidebarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
-  const formatRelativeTime = (ts: number) => {
-    const now = Date.now()
-    const diff = now - ts
-    if (diff < 60000) return 'just now'
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
-    return new Date(ts).toLocaleDateString()
-  }
-
   return (
-    <div
-      className="flex flex-col shrink-0"
-      style={{
-        width: 'var(--sidebar-width)',
-        borderRight: '1px solid var(--border-subtle)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
-      {/* Traffic lights + wordmark */}
-      <div className="drag-region flex items-end pb-3 px-4" style={{ height: '52px' }}>
-        <span
-          className="no-drag tracking-widest uppercase text-xs font-medium select-none"
-          style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem', letterSpacing: '0.12em', color: 'var(--text-primary)', fontWeight: 400 }}
-        >
+    <div className="flex flex-col shrink-0 no-drag" style={{ width: 220, borderRight: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+
+      {/* Header: wordmark + new chat */}
+      <div className="drag-region" style={{ height: 52, flexShrink: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 6, padding: '0 16px 10px' }}>
+        <span className="no-drag select-none" style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 400, letterSpacing: '0.08em', color: 'var(--text-primary)', lineHeight: 1 }}>
           Ramanujan
         </span>
-      </div>
-
-      {/* New Chat button */}
-      <div className="px-3 pb-3 no-drag">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm font-medium"
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-secondary)',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          className="no-drag"
+          title="New chat (⌘N)"
+          style={{ width: 22, height: 22, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          New chat
-          <span className="ml-auto text-xs opacity-40">⌘N</span>
         </button>
       </div>
 
       {/* Chat list */}
-      <div className="flex-1 overflow-y-auto px-2 space-y-0.5 no-drag">
+      <div className="flex-1 overflow-y-auto px-2" style={{ paddingTop: 4 }}>
         {chats.length === 0 && (
-          <div className="px-3 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-            No chats yet
-          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '32px 12px' }}>No chats yet</p>
         )}
-        {chats.map(chat => (
-          <div
-            key={chat.id}
-            className="relative group"
-            onMouseEnter={() => setHoveredId(chat.id)}
-            onMouseLeave={() => setHoveredId(null)}
-          >
-            <button
-              onClick={() => onSelectChat(chat.id)}
-              className="w-full text-left px-3 py-2.5 rounded-lg transition-all duration-100"
-              style={{
-                background: activeChatId === chat.id ? 'var(--bg-elevated)' : 'transparent',
-                color: activeChatId === chat.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-              }}
-              onMouseEnter={e => {
-                if (activeChatId !== chat.id) {
-                  e.currentTarget.style.background = 'var(--bg-hover)'
-                }
-              }}
-              onMouseLeave={e => {
-                if (activeChatId !== chat.id) {
-                  e.currentTarget.style.background = 'transparent'
-                }
-              }}
+        {chats.map(chat => {
+          const active = activeChatId === chat.id
+          const hovered = hoveredId === chat.id
+          return (
+            <div key={chat.id} style={{ position: 'relative' }}
+              onMouseEnter={() => setHoveredId(chat.id)}
+              onMouseLeave={() => setHoveredId(null)}
             >
-              <div className="text-sm truncate pr-6" style={{ fontWeight: activeChatId === chat.id ? 500 : 400 }}>
-                {chat.title}
-              </div>
-              <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
-                {formatRelativeTime(chat.updated_at)}
-              </div>
-            </button>
-
-            {/* Delete button */}
-            {hoveredId === chat.id && (
               <button
-                onClick={(e) => { e.stopPropagation(); onDeleteChat(chat.id) }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-all duration-150"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                onClick={() => onSelectChat(chat.id)}
+                style={{
+                  width: '100%', textAlign: 'left', padding: '7px 28px 7px 10px',
+                  borderRadius: 8, fontSize: 13, lineHeight: 1.4,
+                  background: active ? 'var(--bg-elevated)' : hovered ? 'var(--bg-hover)' : 'transparent',
+                  color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: active ? 500 : 400,
+                  border: 'none', cursor: 'pointer',
+                  display: 'block', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                  transition: 'background 0.1s, color 0.1s',
+                }}
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                {chat.title}
               </button>
-            )}
-          </div>
-        ))}
+              {hovered && (
+                <button
+                  onClick={e => { e.stopPropagation(); onDeleteChat(chat.id) }}
+                  style={{
+                    position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                    width: 20, height: 20, borderRadius: 5, border: 'none', cursor: 'pointer',
+                    background: 'transparent', color: 'var(--text-muted)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent' }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+          )
+        })}
       </div>
 
-      {/* Settings */}
-      <div className="p-3 no-drag" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+      {/* Footer: settings */}
+      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border-subtle)' }}>
         <button
           onClick={onSettings}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-150 text-sm"
           style={{
-            background: isSettingsActive ? 'var(--accent-bg)' : 'transparent',
-            color: isSettingsActive ? 'var(--accent-light)' : 'var(--text-secondary)',
+            width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+            padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            background: isSettingsActive ? 'var(--bg-elevated)' : 'transparent',
+            color: isSettingsActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontSize: 13, textAlign: 'left',
           }}
-          onMouseEnter={e => { if (!isSettingsActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
-          onMouseLeave={e => { if (!isSettingsActive) e.currentTarget.style.background = 'transparent' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = isSettingsActive ? 'var(--bg-elevated)' : 'transparent'; e.currentTarget.style.color = isSettingsActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="7" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.1 2.1l1.1 1.1M10.8 10.8l1.1 1.1M11.9 2.1l-1.1 1.1M3.2 10.8l-1.1 1.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+            <circle cx="7" cy="7" r="2.2" stroke="currentColor" strokeWidth="1.3"/>
+            <path d="M7 1.5V3M7 11v1.5M1.5 7H3M11 7h1.5M3.05 3.05l1.06 1.06M9.89 9.89l1.06 1.06M10.95 3.05L9.89 4.11M4.11 9.89L3.05 10.95" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
           </svg>
           Settings
-          <span className="ml-auto text-xs opacity-40">⌘,</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.4 }}>⌘,</span>
         </button>
       </div>
     </div>
