@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 interface OnboardingProps {
   onComplete: () => void
@@ -45,6 +45,16 @@ function StepRow({ step }: { step: StepState }) {
   )
 }
 
+interface GithubFlowState {
+  deviceCode: string
+  userCode: string
+  verificationUri: string
+  interval: number
+  polling: boolean
+  ok: boolean
+  copied: boolean
+}
+
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [screen, setScreen] = useState<Screen>('setup')
   const [steps, setSteps] = useState<StepState[]>([
@@ -57,6 +67,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     openai:    { key: '', testing: false, tested: false, ok: false, error: '' },
   })
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [githubFlow, setGithubFlow] = useState<GithubFlowState | null>(null)
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const updateStep = (i: number, patch: Partial<StepState>) =>
     setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, ...patch } : s))
@@ -132,12 +144,64 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     if (result.ok) await window.electronAPI.setKey(provider, key)
   }
 
+  const handleGithubConnect = async () => {
+    if (!window.electronAPI) return
+    const data = await window.electronAPI.githubStartDeviceFlow()
+    if (data.error) return
+    setGithubFlow({
+      deviceCode: data.device_code,
+      userCode: data.user_code,
+      verificationUri: data.verification_uri,
+      interval: data.interval || 5,
+      polling: true,
+      ok: false,
+      copied: false,
+    })
+    window.electronAPI.openExternal(data.verification_uri)
+    schedulePoll(data.device_code, data.interval || 5)
+  }
+
+  const schedulePoll = (deviceCode: string, interval: number) => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
+    pollTimerRef.current = setTimeout(() => pollGithub(deviceCode, interval), interval * 1000)
+  }
+
+  const pollGithub = async (deviceCode: string, interval: number) => {
+    if (!window.electronAPI) return
+    const result = await window.electronAPI.githubPollDeviceFlow(deviceCode)
+    if (result.ok) {
+      setGithubFlow(prev => prev ? { ...prev, polling: false, ok: true } : null)
+      return
+    }
+    if (result.error === 'authorization_pending') {
+      schedulePoll(deviceCode, interval)
+    } else if (result.error === 'slow_down') {
+      schedulePoll(deviceCode, interval + 5)
+    } else {
+      setGithubFlow(prev => prev ? { ...prev, polling: false } : null)
+    }
+  }
+
+  const handleCopyCode = () => {
+    if (!githubFlow) return
+    navigator.clipboard.writeText(githubFlow.userCode)
+    setGithubFlow(prev => prev ? { ...prev, copied: true } : null)
+    setTimeout(() => setGithubFlow(prev => prev ? { ...prev, copied: false } : null), 2000)
+  }
+
   const handleDone = async () => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
     if (window.electronAPI) await window.electronAPI.completeOnboarding()
     onComplete()
   }
 
-  const anyConnected = Object.values(providers).some(p => p.ok)
+  const handleSkip = async () => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
+    if (window.electronAPI) await window.electronAPI.completeOnboarding()
+    onComplete()
+  }
+
+  const anyConnected = Object.values(providers).some(p => p.ok) || githubFlow?.ok === true
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full" style={{ background: 'var(--bg-primary)' }}>
@@ -195,6 +259,62 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </div>
 
             <div className="space-y-2">
+              {/* GitHub OAuth card */}
+              <div className="rounded-2xl overflow-hidden"
+                style={{ border: `1px solid ${githubFlow?.ok ? 'var(--green)' : 'var(--border)'}`, background: 'var(--bg-secondary)' }}>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-primary)' }}>
+                    G
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>GitHub Models</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>GPT-4o · Sign in with GitHub</div>
+                  </div>
+                  {githubFlow?.ok ? (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(22,163,74,0.1)', color: 'var(--green)' }}>
+                      Connected ✓
+                    </span>
+                  ) : (
+                    <button onClick={handleGithubConnect} disabled={githubFlow?.polling}
+                      className="text-sm font-semibold px-4 py-1.5 rounded-full transition-all duration-150 active:scale-95 disabled:opacity-50"
+                      style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                      {githubFlow?.polling ? '…' : 'Sign in'}
+                    </button>
+                  )}
+                </div>
+                {githubFlow && !githubFlow.ok && (
+                  <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
+                    <p className="text-xs pt-3" style={{ color: 'var(--text-muted)' }}>
+                      Opening{' '}
+                      <button onClick={() => window.electronAPI?.openExternal(githubFlow.verificationUri)}
+                        className="underline" style={{ color: 'var(--accent-light)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+                        github.com/login/device
+                      </button>
+                      {' '}— enter this code:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-4 py-2.5 rounded-xl text-center font-mono font-bold text-lg tracking-widest"
+                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', letterSpacing: '0.25em' }}>
+                        {githubFlow.userCode}
+                      </div>
+                      <button onClick={handleCopyCode}
+                        className="px-3 py-2.5 rounded-xl text-sm transition-all duration-150"
+                        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: githubFlow.copied ? 'var(--green)' : 'var(--text-secondary)' }}>
+                        {githubFlow.copied ? '✓' : 'Copy'}
+                      </button>
+                    </div>
+                    {githubFlow.polling && (
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: 6 }}>◌</span>
+                        Waiting for authorization…
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* API key providers */}
               {Object.entries(PROVIDER_INFO).map(([provider, info]) => {
                 const state = providers[provider]
                 const isConnected = state.tested && state.ok
@@ -260,7 +380,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             <button onClick={handleDone} disabled={!anyConnected}
               className="w-full py-3 rounded-xl font-semibold transition-all duration-200 hover:opacity-80 active:scale-[0.98] disabled:opacity-40"
               style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
-              {anyConnected ? 'Open Ramanujan →' : 'Connect at least one to continue'}
+              Open Ramanujan →
+            </button>
+
+            <button onClick={handleSkip}
+              className="w-full py-2 text-sm transition-all duration-150 hover:opacity-80"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              Skip for now, use local only
             </button>
           </div>
         )}

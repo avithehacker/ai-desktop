@@ -78,4 +78,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url: string) => ipcRenderer.invoke('shell:open', url),
   completeOnboarding: () => ipcRenderer.invoke('onboarding:complete'),
   getOnboardingStatus: () => ipcRenderer.invoke('onboarding:status'),
+
+  // GitHub Device Flow OAuth
+  githubStartDeviceFlow: () => ipcRenderer.invoke('github:start-device-flow'),
+  githubPollDeviceFlow: (deviceCode: string) => ipcRenderer.invoke('github:poll-device-flow', deviceCode),
 })

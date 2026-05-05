@@ -1,6 +1,6 @@
 import { KeychainManager } from './keychain'
 
-export type Provider = 'ollama' | 'anthropic' | 'openai' | 'google'
+export type Provider = 'ollama' | 'anthropic' | 'openai' | 'google' | 'github'
 
 interface Message {
   role: string
@@ -35,6 +35,16 @@ export async function testApiKey(provider: string, key: string): Promise<{ ok: b
           `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
         )
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return { ok: true }
+      }
+      case 'github': {
+        const OpenAI = require('openai')
+        const client = new OpenAI.OpenAI({ apiKey: key, baseURL: 'https://models.inference.ai.azure.com' })
+        await client.chat.completions.create({
+          model: 'gpt-4o-mini',
+          max_tokens: 10,
+          messages: [{ role: 'user', content: 'Hi' }],
+        })
         return { ok: true }
       }
       default:
@@ -75,6 +85,12 @@ export async function streamResponse(
         const key = await keychain.get('google')
         if (!key) throw new Error('Google API key not configured')
         await streamGemini(key, model, messages, onChunk, onDone)
+        break
+      }
+      case 'github': {
+        const key = await keychain.get('github')
+        if (!key) throw new Error('GitHub token not configured')
+        await streamGitHub(key, model, messages, onChunk, onDone)
         break
       }
       default:
@@ -172,6 +188,34 @@ async function streamOpenAI(
   let fullText = ''
   const stream = await client.chat.completions.create({
     model,
+    stream: true,
+    messages: messages as any,
+  })
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content
+    if (delta) {
+      onChunk(delta)
+      fullText += delta
+    }
+  }
+
+  onDone(fullText)
+}
+
+async function streamGitHub(
+  token: string,
+  model: string,
+  messages: Message[],
+  onChunk: (chunk: string) => void,
+  onDone: (fullText: string) => void
+): Promise<void> {
+  const OpenAI = require('openai')
+  const client = new OpenAI.OpenAI({ apiKey: token, baseURL: 'https://models.inference.ai.azure.com' })
+
+  let fullText = ''
+  const stream = await client.chat.completions.create({
+    model: model || 'gpt-4o-mini',
     stream: true,
     messages: messages as any,
   })

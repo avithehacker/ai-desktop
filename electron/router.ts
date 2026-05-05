@@ -6,7 +6,7 @@ import { streamResponse } from './aiProviders'
 
 type Intent = 'coding' | 'rewrite' | 'chat' | 'reasoning' | 'image' | 'search'
 type OutputLength = 'short' | 'medium' | 'long'
-type ModelKey = 'local' | 'claude' | 'openai'
+type ModelKey = 'local' | 'claude' | 'openai' | 'github'
 
 interface Classification {
   intent: Intent
@@ -106,24 +106,24 @@ function scoreModels(
   available: Set<ModelKey>,
   weights: Record<ModelKey, number>
 ): Record<ModelKey, number> {
-  const base: Record<ModelKey, number> = { local: 0, claude: 0, openai: 0 }
+  const base: Record<ModelKey, number> = { local: 0, claude: 0, openai: 0, github: 0 }
 
   switch (meta.intent) {
     case 'coding':
     case 'reasoning':
-      base.claude = 9; base.openai = 7; base.local = meta.difficulty <= 2 ? 5 : 1
+      base.claude = 9; base.openai = 7; base.github = 6; base.local = meta.difficulty <= 2 ? 5 : 1
       break
     case 'image':
-      base.openai = 10; base.claude = 2; base.local = 0
+      base.openai = 10; base.github = 8; base.claude = 2; base.local = 0
       break
     case 'search':
-      base.openai = 8; base.claude = 8; base.local = 0
+      base.openai = 8; base.github = 7; base.claude = 8; base.local = 0
       break
     case 'rewrite':
-      base.local = 6; base.claude = 8; base.openai = 5
+      base.local = 6; base.claude = 8; base.openai = 5; base.github = 5
       break
     default: // chat
-      base.local = meta.difficulty <= 2 ? 8 : 4; base.claude = 6; base.openai = 5
+      base.local = meta.difficulty <= 2 ? 8 : 4; base.claude = 6; base.openai = 5; base.github = 5
   }
 
   if (meta.difficulty >= 4) base.local = Math.max(0, base.local - 3)
@@ -133,12 +133,14 @@ function scoreModels(
   if (!available.has('local')) base.local = 0
   if (!available.has('claude')) base.claude = 0
   if (!available.has('openai')) base.openai = 0
+  if (!available.has('github')) base.github = 0
 
   // Apply adaptive weights
   return {
-    local: base.local * weights.local,
-    claude: base.claude * weights.claude,
-    openai: base.openai * weights.openai,
+    local: base.local * (weights.local ?? 1),
+    claude: base.claude * (weights.claude ?? 1),
+    openai: base.openai * (weights.openai ?? 1),
+    github: base.github * (weights.github ?? 1),
   }
 }
 
@@ -172,6 +174,13 @@ async function ollamaAvailable(): Promise<boolean> {
   } catch { return false }
 }
 
+const PROVIDER_MAP: Record<ModelKey, { provider: string; model: string }> = {
+  local:  { provider: 'ollama',     model: 'gemma2:2b' },
+  claude: { provider: 'anthropic',  model: 'claude-haiku-4-5' },
+  openai: { provider: 'openai',     model: 'gpt-4o-mini' },
+  github: { provider: 'github',     model: 'gpt-4o-mini' },
+}
+
 async function callModel(
   model: ModelKey,
   messages: Message[],
@@ -179,12 +188,7 @@ async function callModel(
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
     let text = ''
-    const providerMap: Record<ModelKey, { provider: string; model: string }> = {
-      local:  { provider: 'ollama', model: 'gemma2:2b' },
-      claude: { provider: 'anthropic', model: 'claude-haiku-4-5' },
-      openai: { provider: 'openai', model: 'gpt-4o-mini' },
-    }
-    const { provider, model: modelName } = providerMap[model]
+    const { provider, model: modelName } = PROVIDER_MAP[model]
     await streamResponse(
       provider, modelName, messages,
       (chunk) => { text += chunk },
@@ -213,6 +217,7 @@ export async function route(
   if (await ollamaAvailable()) available.add('local')
   if (await keychain.get('anthropic')) available.add('claude')
   if (await keychain.get('openai')) available.add('openai')
+  if (await keychain.get('github')) available.add('github')
 
   if (available.size === 0) { onError('No AI available. Connect a provider in Settings.'); return }
 
@@ -251,46 +256,29 @@ export async function route(
       if (isBadResponse(response) && fallbacks.length > 0) {
         fallbackUsed = true
         modelUsed = fallbacks[0]
-        // Stream from fallback
-        await streamResponse(
-          modelUsed === 'claude' ? 'anthropic' : 'openai',
-          modelUsed === 'claude' ? 'claude-haiku-4-5' : 'gpt-4o-mini',
-          workingMessages,
+        const { provider: fp, model: fm } = PROVIDER_MAP[modelUsed]
+        await streamResponse(fp, fm, workingMessages,
           (chunk) => { response += chunk; onChunk(chunk) },
-          () => {},
-          (err) => { throw new Error(err) },
-          keychain
-        )
+          () => {}, (err) => { throw new Error(err) }, keychain)
       } else {
-        // Stream the local response we already have
         onChunk(response)
       }
     } else {
       // Cloud: stream directly
-      await streamResponse(
-        primary === 'claude' ? 'anthropic' : 'openai',
-        primary === 'claude' ? 'claude-haiku-4-5' : 'gpt-4o-mini',
-        workingMessages,
+      const { provider: pp, model: pm } = PROVIDER_MAP[primary]
+      await streamResponse(pp, pm, workingMessages,
         (chunk) => { response += chunk; onChunk(chunk) },
-        () => {},
-        (err) => { throw new Error(err) },
-        keychain
-      )
+        () => {}, (err) => { throw new Error(err) }, keychain)
 
       // Fallback if cloud gave bad response
       if (isBadResponse(response) && fallbacks.length > 0) {
         fallbackUsed = true
         modelUsed = fallbacks[0]
         response = ''
-        await streamResponse(
-          modelUsed === 'local' ? 'ollama' : modelUsed === 'claude' ? 'anthropic' : 'openai',
-          modelUsed === 'local' ? 'gemma2:2b' : modelUsed === 'claude' ? 'claude-haiku-4-5' : 'gpt-4o-mini',
-          workingMessages,
+        const { provider: fp, model: fm } = PROVIDER_MAP[modelUsed]
+        await streamResponse(fp, fm, workingMessages,
           (chunk) => { response += chunk; onChunk(chunk) },
-          () => {},
-          (err) => { throw new Error(err) },
-          keychain
-        )
+          () => {}, (err) => { throw new Error(err) }, keychain)
       }
     }
   } catch (err: any) {

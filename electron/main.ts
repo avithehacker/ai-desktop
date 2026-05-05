@@ -192,3 +192,46 @@ ipcMain.handle('app:version', () => app.getVersion())
 ipcMain.handle('shell:open', (_e, url: string) => shell.openExternal(url))
 ipcMain.handle('onboarding:complete', () => db.setSetting('onboarding_complete', 'true'))
 ipcMain.handle('onboarding:status', () => db.getSetting('onboarding_complete'))
+
+// ── IPC: GitHub Device Flow OAuth ─────────────────────────────────────────────
+// Register a GitHub OAuth App at github.com/settings/developers to get a
+// client_id. Device Flow doesn't need a client_secret in the app.
+
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || ''
+
+ipcMain.handle('github:start-device-flow', async () => {
+  if (!GITHUB_CLIENT_ID) return { error: 'GITHUB_CLIENT_ID not configured' }
+  try {
+    const res = await fetch('https://github.com/login/device/code', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: '' }),
+    })
+    return res.json()
+  } catch (e: any) {
+    return { error: e.message }
+  }
+})
+
+ipcMain.handle('github:poll-device-flow', async (_e, deviceCode: string) => {
+  if (!GITHUB_CLIENT_ID) return { ok: false, error: 'not_configured' }
+  try {
+    const res = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: GITHUB_CLIENT_ID,
+        device_code: deviceCode,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+      }),
+    })
+    const data: any = await res.json()
+    if (data.access_token) {
+      await keychain.set('github', data.access_token)
+      return { ok: true }
+    }
+    return { ok: false, error: data.error || 'unknown' }
+  } catch (e: any) {
+    return { ok: false, error: e.message }
+  }
+})

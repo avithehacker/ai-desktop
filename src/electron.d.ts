@@ -53,6 +53,17 @@ export interface ElectronAPI {
   openExternal: (url: string) => Promise<void>
   completeOnboarding: () => Promise<void>
   getOnboardingStatus: () => Promise<string | null>
+
+  // GitHub Device Flow OAuth
+  githubStartDeviceFlow: () => Promise<{
+    device_code: string
+    user_code: string
+    verification_uri: string
+    interval: number
+    expires_in: number
+    error?: string
+  }>
+  githubPollDeviceFlow: (deviceCode: string) => Promise<{ ok: boolean; error?: string }>
 }
 
 declare global {
