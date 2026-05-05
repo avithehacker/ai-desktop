@@ -117,6 +117,13 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
     window.location.reload()
   }
 
+  const handleResetSetup = async () => {
+    if (!api) return
+    if (!confirm('Restart setup? This will take you back to the onboarding screen. Your chats and API keys will be kept.')) return
+    await api.setSetting('onboarding_complete', 'false')
+    window.location.reload()
+  }
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'models', label: 'Models' },
     { id: 'appearance', label: 'Appearance' },
@@ -383,6 +390,20 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
                 >
                   Clear all chats
                 </button>
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="font-medium mb-4">Setup</h2>
+                <button
+                  onClick={handleResetSetup}
+                  className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-left transition-all duration-150"
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                >
+                  Restart onboarding
+                </button>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Returns to the setup screen. Chats and API keys are kept.
+                </p>
               </section>
             </div>
           )}
