@@ -1,6 +1,8 @@
 import { Chat, Message, OllamaModel, PullProgress } from './types'
 
 export interface ElectronAPI {
+  isBrowserMode?: boolean
+
   // Chats
   listChats: () => Promise<Chat[]>
   getChat: (chatId: string) => Promise<Chat | null>

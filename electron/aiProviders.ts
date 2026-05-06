@@ -7,44 +7,63 @@ interface Message {
   content: string
 }
 
+// ── SSE stream parser ─────────────────────────────────────────────────────────
+
+async function readSSE(
+  res: Response,
+  onData: (data: string) => void
+): Promise<void> {
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('No response body')
+  const dec = new TextDecoder()
+  let buf = ''
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += dec.decode(value, { stream: true })
+    const lines = buf.split('\n')
+    buf = lines.pop() || ''
+    for (const line of lines) {
+      if (line.startsWith('data: ')) onData(line.slice(6).trim())
+    }
+  }
+}
+
+// ── Key test ──────────────────────────────────────────────────────────────────
+
 export async function testApiKey(provider: string, key: string): Promise<{ ok: boolean; error?: string }> {
   try {
     switch (provider) {
       case 'anthropic': {
-        const Anthropic = require('@anthropic-ai/sdk')
-        const client = new Anthropic.Anthropic({ apiKey: key })
-        await client.messages.create({
-          model: 'claude-haiku-4-5',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Hi' }],
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] }),
         })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return { ok: true }
       }
       case 'openai': {
-        const OpenAI = require('openai')
-        const client = new OpenAI.OpenAI({ apiKey: key })
-        await client.chat.completions.create({
-          model: 'gpt-4o-mini',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Hi' }],
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] }),
         })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return { ok: true }
       }
       case 'google': {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
-        )
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return { ok: true }
       }
       case 'github': {
-        const OpenAI = require('openai')
-        const client = new OpenAI.OpenAI({ apiKey: key, baseURL: 'https://models.inference.ai.azure.com' })
-        await client.chat.completions.create({
-          model: 'gpt-4o-mini',
-          max_tokens: 10,
-          messages: [{ role: 'user', content: 'Hi' }],
+        const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] }),
         })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return { ok: true }
       }
       default:
@@ -54,6 +73,8 @@ export async function testApiKey(provider: string, key: string): Promise<{ ok: b
     return { ok: false, error: err.message || 'Unknown error' }
   }
 }
+
+// ── Stream response ───────────────────────────────────────────────────────────
 
 export async function streamResponse(
   provider: string,
@@ -66,9 +87,7 @@ export async function streamResponse(
 ): Promise<void> {
   try {
     switch (provider) {
-      case 'ollama':
-        await streamOllama(model, messages, onChunk, onDone)
-        break
+      case 'ollama':   await streamOllama(model, messages, onChunk, onDone); break
       case 'anthropic': {
         const key = await keychain.get('anthropic')
         if (!key) throw new Error('Anthropic API key not configured')
@@ -78,19 +97,19 @@ export async function streamResponse(
       case 'openai': {
         const key = await keychain.get('openai')
         if (!key) throw new Error('OpenAI API key not configured')
-        await streamOpenAI(key, model, messages, onChunk, onDone)
+        await streamOpenAI('https://api.openai.com/v1', key, model, messages, onChunk, onDone)
+        break
+      }
+      case 'github': {
+        const key = await keychain.get('github')
+        if (!key) throw new Error('GitHub token not configured')
+        await streamOpenAI('https://models.inference.ai.azure.com', key, model, messages, onChunk, onDone)
         break
       }
       case 'google': {
         const key = await keychain.get('google')
         if (!key) throw new Error('Google API key not configured')
         await streamGemini(key, model, messages, onChunk, onDone)
-        break
-      }
-      case 'github': {
-        const key = await keychain.get('github')
-        if (!key) throw new Error('GitHub token not configured')
-        await streamGitHub(key, model, messages, onChunk, onDone)
         break
       }
       default:
@@ -101,194 +120,113 @@ export async function streamResponse(
   }
 }
 
+// ── Ollama ────────────────────────────────────────────────────────────────────
+
 async function streamOllama(
-  model: string,
-  messages: Message[],
-  onChunk: (chunk: string) => void,
-  onDone: (fullText: string) => void
+  model: string, messages: Message[],
+  onChunk: (c: string) => void, onDone: (t: string) => void
 ): Promise<void> {
   const res = await fetch('http://localhost:11434/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, messages, stream: true }),
   })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Ollama error (${res.status}): ${text}`)
-  }
+  if (!res.ok) throw new Error(`Ollama error (${res.status}): ${await res.text()}`)
 
   const reader = res.body?.getReader()
   if (!reader) throw new Error('No response body')
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let fullText = ''
-
+  const dec = new TextDecoder()
+  let buf = '', full = ''
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
-
+    buf += dec.decode(value, { stream: true })
+    const lines = buf.split('\n'); buf = lines.pop() || ''
     for (const line of lines) {
       if (!line.trim()) continue
       try {
-        const data = JSON.parse(line)
-        if (data.message?.content) {
-          onChunk(data.message.content)
-          fullText += data.message.content
-        }
+        const d = JSON.parse(line)
+        if (d.message?.content) { onChunk(d.message.content); full += d.message.content }
       } catch {}
     }
   }
-
-  onDone(fullText)
+  onDone(full)
 }
+
+// ── Anthropic (direct fetch, SSE) ─────────────────────────────────────────────
 
 async function streamAnthropic(
-  apiKey: string,
-  model: string,
-  messages: Message[],
-  onChunk: (chunk: string) => void,
-  onDone: (fullText: string) => void
+  apiKey: string, model: string, messages: Message[],
+  onChunk: (c: string) => void, onDone: (t: string) => void
 ): Promise<void> {
-  const Anthropic = require('@anthropic-ai/sdk')
-  const client = new Anthropic.Anthropic({ apiKey })
-
-  let fullText = ''
-  const stream = await client.messages.stream({
-    model,
-    max_tokens: 4096,
-    messages: messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model, max_tokens: 4096, stream: true,
+      messages: messages.filter(m => m.role !== 'system').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ...(messages[0]?.role === 'system' ? { system: messages[0].content } : {}),
+    }),
   })
-
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      onChunk(event.delta.text)
-      fullText += event.delta.text
-    }
-  }
-
-  onDone(fullText)
+  if (!res.ok) throw new Error(`Anthropic error (${res.status}): ${await res.text()}`)
+  let full = ''
+  await readSSE(res, raw => {
+    if (raw === '[DONE]') return
+    try {
+      const d = JSON.parse(raw)
+      if (d.type === 'content_block_delta' && d.delta?.type === 'text_delta') {
+        onChunk(d.delta.text); full += d.delta.text
+      }
+    } catch {}
+  })
+  onDone(full)
 }
+
+// ── OpenAI-compatible (OpenAI + GitHub Models) ────────────────────────────────
 
 async function streamOpenAI(
-  apiKey: string,
-  model: string,
-  messages: Message[],
-  onChunk: (chunk: string) => void,
-  onDone: (fullText: string) => void
+  baseUrl: string, apiKey: string, model: string, messages: Message[],
+  onChunk: (c: string) => void, onDone: (t: string) => void
 ): Promise<void> {
-  const OpenAI = require('openai')
-  const client = new OpenAI.OpenAI({ apiKey })
-
-  let fullText = ''
-  const stream = await client.chat.completions.create({
-    model,
-    stream: true,
-    messages: messages as any,
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ model, stream: true, messages }),
   })
-
-  for await (const chunk of stream) {
-    const delta = chunk.choices[0]?.delta?.content
-    if (delta) {
-      onChunk(delta)
-      fullText += delta
-    }
-  }
-
-  onDone(fullText)
+  if (!res.ok) throw new Error(`API error (${res.status}): ${await res.text()}`)
+  let full = ''
+  await readSSE(res, raw => {
+    if (raw === '[DONE]') return
+    try {
+      const delta = JSON.parse(raw).choices?.[0]?.delta?.content
+      if (delta) { onChunk(delta); full += delta }
+    } catch {}
+  })
+  onDone(full)
 }
 
-async function streamGitHub(
-  token: string,
-  model: string,
-  messages: Message[],
-  onChunk: (chunk: string) => void,
-  onDone: (fullText: string) => void
-): Promise<void> {
-  const OpenAI = require('openai')
-  const client = new OpenAI.OpenAI({ apiKey: token, baseURL: 'https://models.inference.ai.azure.com' })
-
-  let fullText = ''
-  const stream = await client.chat.completions.create({
-    model: model || 'gpt-4o-mini',
-    stream: true,
-    messages: messages as any,
-  })
-
-  for await (const chunk of stream) {
-    const delta = chunk.choices[0]?.delta?.content
-    if (delta) {
-      onChunk(delta)
-      fullText += delta
-    }
-  }
-
-  onDone(fullText)
-}
+// ── Google Gemini (SSE) ───────────────────────────────────────────────────────
 
 async function streamGemini(
-  apiKey: string,
-  model: string,
-  messages: Message[],
-  onChunk: (chunk: string) => void,
-  onDone: (fullText: string) => void
+  apiKey: string, model: string, messages: Message[],
+  onChunk: (c: string) => void, onDone: (t: string) => void
 ): Promise<void> {
-  // Convert messages to Gemini format
   const contents = messages
     .filter(m => m.role !== 'system')
-    .map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
+    .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }))
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents }),
-    }
+    { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents }) }
   )
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Gemini error (${res.status}): ${text}`)
-  }
-
-  const reader = res.body?.getReader()
-  if (!reader) throw new Error('No response body')
-
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let fullText = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() || ''
-
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      const jsonStr = line.slice(6).trim()
-      if (jsonStr === '[DONE]') continue
-      try {
-        const data = JSON.parse(jsonStr)
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text
-        if (text) {
-          onChunk(text)
-          fullText += text
-        }
-      } catch {}
-    }
-  }
-
-  onDone(fullText)
+  if (!res.ok) throw new Error(`Gemini error (${res.status}): ${await res.text()}`)
+  let full = ''
+  await readSSE(res, raw => {
+    if (raw === '[DONE]') return
+    try {
+      const text = JSON.parse(raw).candidates?.[0]?.content?.parts?.[0]?.text
+      if (text) { onChunk(text); full += text }
+    } catch {}
+  })
+  onDone(full)
 }

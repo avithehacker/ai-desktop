@@ -10,23 +10,18 @@ export default function App() {
   useEffect(() => {
     const check = async () => {
       try {
-        if (!window.electronAPI) {
-          setState('main')
-          return
-        }
-        const status = await window.electronAPI.getOnboardingStatus()
-        if (status !== 'true') {
-          setState('onboarding')
-          return
-        }
-        // Onboarding completed before — verify Ollama binary is still present.
-        // We check installed (not running) to avoid a race where the main
-        // process hasn't finished starting ollama serve yet.
-        const ollamaStatus = await window.electronAPI.ollamaStatus()
-        if (!ollamaStatus.installed) {
-          await window.electronAPI.setSetting('onboarding_complete', 'false')
-          setState('onboarding')
-          return
+        const api = window.electronAPI
+        const isBrowser = (api as any)?.isBrowserMode === true
+        const status = await api.getOnboardingStatus()
+        if (status !== 'true') { setState('onboarding'); return }
+        // In Electron, verify Ollama is still installed
+        if (!isBrowser) {
+          const ollamaStatus = await api.ollamaStatus()
+          if (!ollamaStatus.installed) {
+            await api.setSetting('onboarding_complete', 'false')
+            setState('onboarding')
+            return
+          }
         }
         setState('main')
       } catch {
