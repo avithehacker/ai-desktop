@@ -88,6 +88,10 @@ async function getWebLLMEngine(): Promise<any> {
 
 async function loadWebLLMModel(modelId: string): Promise<void> {
   S.set('rj:webllm:model', modelId)
+  // Explicitly unload before switching to free GPU/RAM immediately
+  if (webllmEngine) {
+    try { await webllmEngine.unload() } catch {}
+  }
   webllmEngine = null
   webllmInitPromise = null
   webllmLoadedModelId = null
