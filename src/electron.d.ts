@@ -53,6 +53,8 @@ export interface ElectronAPI {
   webllmModels?: () => Array<{ id: string; label: string; size: string; description: string }>
   getActiveWebLLMModel?: () => string
   loadWebLLMModel?: (modelId: string) => Promise<void>
+  removeWebLLMModel?: (modelId: string) => Promise<void>
+  resetWebLLMChat?: () => Promise<void>
 
   // Shortcuts
   onShortcut: (shortcut: string, cb: () => void) => () => void

@@ -88,7 +88,6 @@ async function getWebLLMEngine(): Promise<any> {
 
 async function loadWebLLMModel(modelId: string): Promise<void> {
   S.set('rj:webllm:model', modelId)
-  // Explicitly unload before switching to free GPU/RAM immediately
   if (webllmEngine) {
     try { await webllmEngine.unload() } catch {}
   }
@@ -96,6 +95,24 @@ async function loadWebLLMModel(modelId: string): Promise<void> {
   webllmInitPromise = null
   webllmLoadedModelId = null
   await getWebLLMEngine()
+}
+
+async function removeWebLLMModel(modelId: string): Promise<void> {
+  if (webllmLoadedModelId === modelId && webllmEngine) {
+    try { await webllmEngine.unload() } catch {}
+    webllmEngine = null
+    webllmInitPromise = null
+    webllmLoadedModelId = null
+  }
+  const { deleteModelAllInfoInCache, prebuiltAppConfig } = await import('@mlc-ai/web-llm')
+  try { await deleteModelAllInfoInCache(modelId, prebuiltAppConfig) } catch {}
+  // Reset active model to default if this was the active one
+  if (S.get('rj:webllm:model') === modelId) S.del('rj:webllm:model')
+}
+
+async function resetWebLLMChat(): Promise<void> {
+  if (!webllmEngine) return
+  try { await webllmEngine.resetChat() } catch {}
 }
 
 // ── Routing ───────────────────────────────────────────────────────────────────
@@ -394,7 +411,9 @@ export function createBrowserAPI() {
     webllmAvailable: () => hasWebGPU(),
     webllmModels: () => WEBLLM_AVAILABLE_MODELS,
     getActiveWebLLMModel: () => getActiveWebLLMModelId(),
-    loadWebLLMModel: async (modelId: string) => loadWebLLMModel(modelId),
+    loadWebLLMModel:   async (modelId: string) => loadWebLLMModel(modelId),
+    removeWebLLMModel: async (modelId: string) => removeWebLLMModel(modelId),
+    resetWebLLMChat:   async ()                 => resetWebLLMChat(),
 
     // Misc
     onShortcut:            (_: string, _cb: () => void) => (() => {}),

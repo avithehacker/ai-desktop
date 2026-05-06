@@ -128,6 +128,27 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
     }
   }
 
+  const handleRemoveWebLLMModel = async (modelId: string) => {
+    if (!api?.removeWebLLMModel) return
+    if (!confirm(`Remove ${WEBLLM_AVAILABLE_MODELS.find(m => m.id === modelId)?.label}? This deletes the cached files from your browser.`)) return
+    setWebllmLoadingId(modelId)
+    setWebllmLoadStatus('Removing…')
+    try {
+      await api.removeWebLLMModel(modelId)
+      setWebllmActiveModel(api.getActiveWebLLMModel?.() || '')
+      onModelsChanged()
+    } finally {
+      setWebllmLoadingId(null)
+      setWebllmLoadStatus('')
+    }
+  }
+
+  const handleResetWebLLMChat = async () => {
+    if (!api?.resetWebLLMChat) return
+    await api.resetWebLLMChat()
+    onModelsChanged()
+  }
+
   const handleDeleteModel = async (name: string) => {
     if (!api) return
     await api.ollamaDeleteModel(name)
@@ -266,20 +287,45 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
                               </div>
                             )}
                           </div>
-                          {!isActive && (
-                            <button
-                              onClick={() => handleLoadWebLLMModel(m.id)}
-                              disabled={!!webllmLoadingId}
-                              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
-                              style={{
-                                background: 'var(--accent-bg)',
-                                color: 'var(--accent-light)',
-                                border: '1px solid rgba(94,106,210,0.3)',
-                              }}
-                            >
-                              {isLoading ? 'Loading…' : 'Load'}
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {isActive && (
+                              <button
+                                onClick={handleResetWebLLMChat}
+                                disabled={!!webllmLoadingId}
+                                className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
+                                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                                title="Clear model's conversation memory"
+                              >
+                                Reset
+                              </button>
+                            )}
+                            {isActive && (
+                              <button
+                                onClick={() => handleRemoveWebLLMModel(m.id)}
+                                disabled={!!webllmLoadingId}
+                                className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
+                                style={{ color: 'var(--text-muted)' }}
+                                onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
+                                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                              >
+                                Remove
+                              </button>
+                            )}
+                            {!isActive && (
+                              <button
+                                onClick={() => handleLoadWebLLMModel(m.id)}
+                                disabled={!!webllmLoadingId}
+                                className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
+                                style={{
+                                  background: 'var(--accent-bg)',
+                                  color: 'var(--accent-light)',
+                                  border: '1px solid rgba(94,106,210,0.3)',
+                                }}
+                              >
+                                {isLoading ? 'Loading…' : 'Load'}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
