@@ -8,10 +8,11 @@ interface ChatAreaProps {
   streamingText: string
   isStreaming: boolean
   streamError: string
+  modelProgress?: { text: string; progress: number } | null
   onSend: (content: string) => void
 }
 
-export default function ChatArea({ messages, streamingText, isStreaming, streamError, onSend }: ChatAreaProps) {
+export default function ChatArea({ messages, streamingText, isStreaming, streamError, modelProgress, onSend }: ChatAreaProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -24,6 +25,21 @@ export default function ChatArea({ messages, streamingText, isStreaming, streamE
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Drag region */}
       <div className="drag-region" style={{ height: 52, flexShrink: 0 }} />
+
+      {/* WebLLM download progress */}
+      {modelProgress && (
+        <div style={{ flexShrink: 0, padding: '6px 20px', background: 'rgba(99,102,241,0.08)', borderBottom: '1px solid rgba(99,102,241,0.15)' }}>
+          <div style={{ maxWidth: '42rem', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 4 }}>
+              <span>{modelProgress.text}</span>
+              <span>{Math.round(modelProgress.progress * 100)}%</span>
+            </div>
+            <div style={{ height: 3, borderRadius: 2, background: 'rgba(99,102,241,0.2)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${modelProgress.progress * 100}%`, background: 'rgba(99,102,241,0.7)', transition: 'width 0.3s ease' }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto' }}>

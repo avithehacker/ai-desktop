@@ -14,6 +14,7 @@ export default function MainApp() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingText, setStreamingText] = useState('')
   const [streamError, setStreamError] = useState('')
+  const [modelProgress, setModelProgress] = useState<{ text: string; progress: number } | null>(null)
 
   const api = window.electronAPI
 
@@ -43,6 +44,15 @@ export default function MainApp() {
     })
     return () => { cleanChunk(); cleanDone(); cleanError() }
   }, [activeChatId, api])
+
+  useEffect(() => {
+    if (!api?.onLocalModelProgress) return
+    const clean = api.onLocalModelProgress(prog => {
+      if (prog.progress >= 1) { setModelProgress(null); return }
+      setModelProgress(prog)
+    })
+    return clean
+  }, [api])
 
   useEffect(() => {
     if (!api) return
@@ -136,6 +146,7 @@ export default function MainApp() {
             streamingText={streamingText}
             isStreaming={isStreaming}
             streamError={streamError}
+            modelProgress={modelProgress}
             onSend={handleSendMessage}
           />
         )}

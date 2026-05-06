@@ -47,6 +47,10 @@ export interface ElectronAPI {
   onStreamDone: (cb: (data: { chatId: string; fullText: string }) => void) => () => void
   onStreamError: (cb: (data: { chatId: string; error: string }) => void) => () => void
 
+  // WebLLM (browser mode only)
+  onLocalModelProgress?: (cb: (data: { text: string; progress: number }) => void) => () => void
+  webllmAvailable?: () => boolean
+
   // Shortcuts
   onShortcut: (shortcut: string, cb: () => void) => () => void
 

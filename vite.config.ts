@@ -7,6 +7,7 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist/renderer',
+    target: 'esnext',
   },
   resolve: {
     alias: {
@@ -15,5 +16,13 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    headers: {
+      // Required for SharedArrayBuffer used by WebLLM workers
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  optimizeDeps: {
+    exclude: ['@mlc-ai/web-llm'],
   },
 })
