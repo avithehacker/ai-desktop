@@ -106,14 +106,22 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
 
   const handleExport = async () => {
     if (!api) return
-    // Would trigger export - simplified for now
-    alert('Export functionality: Data would be saved to Downloads folder')
+    const chats = await api.listChats()
+    const data: Record<string, any> = {}
+    for (const chat of chats) {
+      data[chat.id] = { ...chat, messages: await api.listMessages(chat.id) }
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'ramanujan-chats.json'; a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleClearChats = async () => {
     if (!api) return
     if (!confirm('Delete all chats? This cannot be undone.')) return
-    await api.setSetting('clear_chats', 'true')
+    const chats = await api.listChats()
+    await Promise.all(chats.map(c => api.deleteChat(c.id)))
     window.location.reload()
   }
 

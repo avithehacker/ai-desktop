@@ -7,7 +7,7 @@ const S = {
   get:     (k: string)           => localStorage.getItem(k),
   set:     (k: string, v: string) => localStorage.setItem(k, v),
   del:     (k: string)           => localStorage.removeItem(k),
-  getJ:    <T>(k: string, d: T): T => { try { return JSON.parse(localStorage.getItem(k)!) } catch { return d } },
+  getJ:    <T>(k: string, d: T): T => { const v = localStorage.getItem(k); if (v === null) return d; try { return JSON.parse(v) } catch { return d } },
   setJ:    (k: string, v: any)   => localStorage.setItem(k, JSON.stringify(v)),
 }
 

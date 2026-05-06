@@ -275,7 +275,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   useEffect(() => { runSetup() }, [])
 
   const runSetup = async () => {
-    if (!window.electronAPI) { setScreen('cloud'); return }
+    if (!window.electronAPI || (window.electronAPI as any).isBrowserMode) { setScreen('cloud'); return }
     setSetupError(false)
     setSteps([
       { label: 'Install Ollama  ·  local AI runtime', status: 'waiting' },
