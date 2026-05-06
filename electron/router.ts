@@ -6,7 +6,7 @@ import { streamResponse } from './aiProviders'
 
 type Intent = 'coding' | 'rewrite' | 'chat' | 'reasoning' | 'image' | 'search'
 type OutputLength = 'short' | 'medium' | 'long'
-type ModelKey = 'local' | 'claude' | 'openai' | 'github'
+type ModelKey = 'local' | 'claude' | 'openai' | 'github' | 'google'
 
 interface Classification {
   intent: Intent
@@ -91,24 +91,24 @@ function scoreModels(
   available: Set<ModelKey>,
   weights: Record<ModelKey, number>
 ): Record<ModelKey, number> {
-  const base: Record<ModelKey, number> = { local: 0, claude: 0, openai: 0, github: 0 }
+  const base: Record<ModelKey, number> = { local: 0, claude: 0, openai: 0, github: 0, google: 0 }
 
   switch (meta.intent) {
     case 'coding':
     case 'reasoning':
-      base.claude = 9; base.openai = 7; base.github = 6; base.local = meta.difficulty <= 2 ? 5 : 1
+      base.claude = 9; base.openai = 7; base.github = 6; base.google = 6; base.local = meta.difficulty <= 2 ? 5 : 1
       break
     case 'image':
-      base.openai = 10; base.github = 8; base.claude = 2; base.local = 0
+      base.openai = 10; base.github = 8; base.claude = 2; base.google = 4; base.local = 0
       break
     case 'search':
-      base.openai = 8; base.github = 7; base.claude = 8; base.local = 0
+      base.openai = 8; base.github = 7; base.claude = 8; base.google = 8; base.local = 0
       break
     case 'rewrite':
-      base.local = 6; base.claude = 8; base.openai = 5; base.github = 5
+      base.local = 6; base.claude = 8; base.openai = 5; base.github = 5; base.google = 6
       break
     default: // chat
-      base.local = meta.difficulty <= 2 ? 8 : 4; base.claude = 6; base.openai = 5; base.github = 5
+      base.local = meta.difficulty <= 2 ? 8 : 4; base.claude = 6; base.openai = 5; base.github = 5; base.google = 7
   }
 
   if (meta.difficulty >= 4) base.local = Math.max(0, base.local - 3)
@@ -119,13 +119,15 @@ function scoreModels(
   if (!available.has('claude')) base.claude = 0
   if (!available.has('openai')) base.openai = 0
   if (!available.has('github')) base.github = 0
+  if (!available.has('google')) base.google = 0
 
   // Apply adaptive weights
   return {
-    local: base.local * (weights.local ?? 1),
+    local:  base.local  * (weights.local  ?? 1),
     claude: base.claude * (weights.claude ?? 1),
     openai: base.openai * (weights.openai ?? 1),
     github: base.github * (weights.github ?? 1),
+    google: base.google * (weights.google ?? 1),
   }
 }
 
@@ -164,6 +166,7 @@ const PROVIDER_MAP: Record<ModelKey, { provider: string; model: string }> = {
   claude: { provider: 'anthropic',  model: 'claude-haiku-4-5' },
   openai: { provider: 'openai',     model: 'gpt-4o-mini' },
   github: { provider: 'github',     model: 'gpt-4o-mini' },
+  google: { provider: 'google',     model: 'gemini-2.0-flash' },
 }
 
 async function callModel(
@@ -208,6 +211,7 @@ export async function route(
   if (await keychain.get('anthropic')) available.add('claude')
   if (await keychain.get('openai')) available.add('openai')
   if (await keychain.get('github')) available.add('github')
+  if (await keychain.get('google')) available.add('google')
 
   if (available.size === 0) { onError('No AI available. Connect a provider in Settings.'); return }
 

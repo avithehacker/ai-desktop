@@ -10,7 +10,9 @@ type Tab = 'models' | 'appearance' | 'data' | 'downloads'
 
 const PROVIDER_INFO = {
   anthropic: { name: 'Anthropic (Claude)', placeholder: 'sk-ant-...', color: '#d4a574' },
-  openai: { name: 'OpenAI (ChatGPT)', placeholder: 'sk-...', color: '#74b9d4' },
+  openai:    { name: 'OpenAI (ChatGPT)',   placeholder: 'sk-...',     color: '#74b9d4' },
+  google:    { name: 'Google (Gemini)',    placeholder: 'AIza...',    color: '#7bc67e' },
+  github:    { name: 'GitHub Models',     placeholder: 'ghp_...',    color: '#a78bfa' },
 }
 
 export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
@@ -303,7 +305,12 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
 
               {/* Cloud Models */}
               <section>
-                <h2 className="font-medium mb-4">Cloud Models</h2>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="font-medium">Cloud Models</h2>
+                </div>
+                <div className="mb-4 px-4 py-3 rounded-xl text-xs space-y-1" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', color: 'var(--text-secondary)' }}>
+                  <p><strong style={{ color: 'var(--text-primary)' }}>Google Gemini</strong> and <strong style={{ color: 'var(--text-primary)' }}>GitHub Models</strong> are free — adding either one will give much better answers.</p>
+                </div>
                 <div className="space-y-4">
                   {Object.entries(PROVIDER_INFO).map(([provider, info]) => {
                     const currentKey = apiKeys[provider] || ''
