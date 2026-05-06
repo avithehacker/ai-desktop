@@ -15,7 +15,7 @@ async function askRamanujan(prompt: string): Promise<string> {
     const res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gemma2:2b', prompt, stream: false }),
+      body: JSON.stringify({ model: 'llama3.2:1b', prompt, stream: false }),
       signal: AbortSignal.timeout(20000),
     })
     if (res.ok) {
