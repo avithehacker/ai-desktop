@@ -6,7 +6,7 @@ interface SettingsProps {
   onModelsChanged: () => void
 }
 
-type Tab = 'models' | 'appearance' | 'data'
+type Tab = 'models' | 'appearance' | 'data' | 'downloads'
 
 const PROVIDER_INFO = {
   anthropic: { name: 'Anthropic (Claude)', placeholder: 'sk-ant-...', color: '#d4a574' },
@@ -132,10 +132,13 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
     window.location.reload()
   }
 
+  const isBrowser = (api as any)?.isBrowserMode === true
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'models', label: 'Models' },
     { id: 'appearance', label: 'Appearance' },
     { id: 'data', label: 'Data' },
+    ...(isBrowser ? [{ id: 'downloads' as Tab, label: 'Downloads' }] : []),
   ]
 
   return (
@@ -394,6 +397,76 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
                     </button>
                   ))}
                 </div>
+              </section>
+            </div>
+          )}
+
+          {tab === 'downloads' && (
+            <div className="max-w-sm space-y-6">
+              <section className="space-y-3">
+                <h2 className="font-medium mb-4">Desktop App</h2>
+                {[
+                  { label: 'Mac (Apple Silicon)', sub: 'arm64 · zip', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.1.0/Ramanujan-1.0.0-arm64-mac.zip' },
+                  { label: 'Mac (Intel)', sub: 'x64 · zip', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.1.0/Ramanujan-1.0.0-mac.zip' },
+                  { label: 'Windows', sub: 'x64 · NSIS installer', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.1.0/Ramanujan.Setup.1.0.0.exe' },
+                  { label: 'Linux', sub: 'x64 · AppImage', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.1.0/Ramanujan-1.0.0.AppImage' },
+                ].map(({ label, sub, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between w-full py-2.5 px-4 rounded-xl text-sm transition-all duration-150 no-underline"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', textDecoration: 'none' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  >
+                    <span className="font-medium">{label}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{sub} ↓</span>
+                  </a>
+                ))}
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="font-medium mb-4">Terminal CLI</h2>
+                {[
+                  { label: 'Mac', sub: 'binary', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.0.0/ram-macos' },
+                  { label: 'Windows', sub: '.exe', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.0.0/ram-win.exe' },
+                  { label: 'Linux', sub: 'binary', href: 'https://github.com/avithehacker/ai-desktop/releases/download/v1.0.0/ram-linux' },
+                ].map(({ label, sub, href }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between w-full py-2.5 px-4 rounded-xl text-sm transition-all duration-150"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', textDecoration: 'none' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  >
+                    <span className="font-medium">{label}</span>
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{sub} ↓</span>
+                  </a>
+                ))}
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="font-medium mb-4">VS Code Extension</h2>
+                <a
+                  href="https://github.com/avithehacker/ai-desktop/releases/download/v1.0.0/ramanujan-1.0.0.vsix"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between w-full py-2.5 px-4 rounded-xl text-sm transition-all duration-150"
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)', textDecoration: 'none' }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                >
+                  <span className="font-medium">ramanujan-1.0.0.vsix</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>.vsix ↓</span>
+                </a>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Install via Extensions → ··· → Install from VSIX…
+                </p>
               </section>
             </div>
           )}
