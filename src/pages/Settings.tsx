@@ -195,7 +195,25 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
                   >
                     {ollamaRunning ? '● Ollama running' : '○ Ollama offline'}
                   </span>
+                  {window.location.protocol === 'https:' && !ollamaRunning && (
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      · HTTPS blocks localhost
+                    </span>
+                  )}
                 </div>
+
+                {/* HTTPS notice */}
+                {window.location.protocol === 'https:' && !ollamaRunning && (
+                  <div className="mb-4 px-4 py-3 rounded-xl text-xs space-y-1" style={{ background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.2)', color: 'var(--text-secondary)' }}>
+                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>To use local models from this web app:</p>
+                    <p>1. Use <strong>Chrome</strong> (it allows localhost from HTTPS)</p>
+                    <p>2. Restart Ollama with CORS enabled:</p>
+                    <code className="block mt-1 px-2 py-1 rounded text-xs font-mono" style={{ background: 'var(--bg-elevated)' }}>
+                      OLLAMA_ORIGINS=* ollama serve
+                    </code>
+                    <p className="mt-1" style={{ color: 'var(--text-muted)' }}>Or use the <strong>desktop app</strong> — no restrictions.</p>
+                  </div>
+                )}
 
                 {/* Installed models */}
                 {localModels.length > 0 && (

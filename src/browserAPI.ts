@@ -89,7 +89,12 @@ Ramanujan routes messages to the best available AI model automatically. If asked
 
 // ── Core streaming ────────────────────────────────────────────────────────────
 
+const onHttps = typeof window !== 'undefined' && window.location.protocol === 'https:'
+
 async function ollamaOk(): Promise<boolean> {
+  // On HTTPS, browsers block http://localhost (mixed content).
+  // Chrome has a localhost exception; Firefox/Safari do not.
+  // Ollama also needs OLLAMA_ORIGINS set to allow the GitHub Pages origin.
   try { return (await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(2000) })).ok }
   catch { return false }
 }
@@ -105,7 +110,12 @@ async function streamToChat(
   if (getKey('github'))    avail.add('github')
   if (getKey('google'))    avail.add('google')
 
-  if (avail.size === 0) { errCbs.forEach(cb => cb({ chatId, error: 'No AI available. Connect a provider in Settings.' })); return }
+  if (avail.size === 0) {
+    const msg = onHttps
+      ? 'Local Ollama is blocked on HTTPS. To use it: open Chrome, then run Ollama with OLLAMA_ORIGINS=* (see Settings for details). Or connect a free cloud provider like GitHub Models.'
+      : 'No AI available. Connect a provider in Settings.'
+    errCbs.forEach(cb => cb({ chatId, error: msg })); return
+  }
 
   const intent = classify(messages[messages.length - 1]?.content || '')
   const model  = pickModel(intent, avail)
