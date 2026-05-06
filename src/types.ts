@@ -60,6 +60,16 @@ export const POPULAR_LOCAL_MODELS = [
   { name: 'gemma2:2b', label: 'Gemma 2 2B', size: '1.6 GB', description: 'Google\'s efficient model' },
 ]
 
+export const WEBLLM_AVAILABLE_MODELS = [
+  { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',    label: 'Llama 3.2 1B',  size: '700 MB',  description: 'Fastest, runs on most devices' },
+  { id: 'Llama-3.2-3B-Instruct-q4f16_1-MLC',    label: 'Llama 3.2 3B',  size: '2.0 GB',  description: 'Better quality, needs more RAM' },
+  { id: 'Phi-3.5-mini-instruct-q4f16_1-MLC',    label: 'Phi 3.5 Mini',  size: '2.2 GB',  description: 'Microsoft, strong reasoning' },
+  { id: 'gemma-2-2b-it-q4f16_1-MLC',            label: 'Gemma 2 2B',    size: '1.4 GB',  description: 'Google, efficient and accurate' },
+  { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',    label: 'Qwen 2.5 1.5B', size: '900 MB',  description: 'Alibaba, multilingual' },
+  { id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC',    label: 'SmolLM2 1.7B',  size: '1.0 GB',  description: 'Lightweight, very fast' },
+  { id: 'Mistral-7B-Instruct-v0.3-q4f16_1-MLC', label: 'Mistral 7B',    size: '4.3 GB',  description: 'High quality, needs 8 GB+ RAM' },
+]
+
 export function providerColor(provider: Provider): string {
   switch (provider) {
     case 'anthropic': return '#d4a574'

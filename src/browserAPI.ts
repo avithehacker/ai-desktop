@@ -1,5 +1,6 @@
 // Browser-compatible implementation of ElectronAPI — uses localStorage + direct fetch + WebLLM
 import type { Chat, Message } from './types'
+import { WEBLLM_AVAILABLE_MODELS } from './types'
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 
@@ -45,30 +46,52 @@ const progressCbs = new Set<ProgressCb>()
 
 // ── WebLLM — in-browser local inference ──────────────────────────────────────
 
-const WEB_LLM_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+const DEFAULT_WEBLLM_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+
+function getActiveWebLLMModelId(): string {
+  return S.get('rj:webllm:model') || DEFAULT_WEBLLM_MODEL
+}
+
 let webllmEngine: any = null
 let webllmInitPromise: Promise<any> | null = null
+let webllmLoadedModelId: string | null = null
 
 function hasWebGPU(): boolean {
   return typeof navigator !== 'undefined' && 'gpu' in navigator
 }
 
 async function getWebLLMEngine(): Promise<any> {
-  if (webllmEngine) return webllmEngine
-  if (webllmInitPromise) return webllmInitPromise
+  const modelId = getActiveWebLLMModelId()
+  if (webllmEngine && webllmLoadedModelId === modelId) return webllmEngine
+  if (webllmInitPromise && webllmLoadedModelId === modelId) return webllmInitPromise
+
+  // Reset if switching models
+  webllmEngine = null
+  webllmInitPromise = null
+  webllmLoadedModelId = modelId
 
   webllmInitPromise = (async () => {
     const { CreateMLCEngine } = await import('@mlc-ai/web-llm')
-    webllmEngine = await CreateMLCEngine(WEB_LLM_MODEL, {
+    const engine = await CreateMLCEngine(modelId, {
       initProgressCallback: ({ text, progress }: { text: string; progress: number }) => {
         progressCbs.forEach(cb => cb({ text, progress }))
       },
     })
+    webllmEngine = engine
+    webllmInitPromise = null
     progressCbs.forEach(cb => cb({ text: 'Ready', progress: 1 }))
-    return webllmEngine
+    return engine
   })()
 
   return webllmInitPromise
+}
+
+async function loadWebLLMModel(modelId: string): Promise<void> {
+  S.set('rj:webllm:model', modelId)
+  webllmEngine = null
+  webllmInitPromise = null
+  webllmLoadedModelId = null
+  await getWebLLMEngine()
 }
 
 // ── Routing ───────────────────────────────────────────────────────────────────
@@ -363,8 +386,11 @@ export function createBrowserAPI() {
     onStreamError: (cb: ErrCb)      => { errCbs.add(cb);      return () => errCbs.delete(cb)      },
     onLocalModelProgress: (cb: ProgressCb) => { progressCbs.add(cb); return () => progressCbs.delete(cb) },
 
-    // WebLLM status
+    // WebLLM status + model management
     webllmAvailable: () => hasWebGPU(),
+    webllmModels: () => WEBLLM_AVAILABLE_MODELS,
+    getActiveWebLLMModel: () => getActiveWebLLMModelId(),
+    loadWebLLMModel: async (modelId: string) => loadWebLLMModel(modelId),
 
     // Misc
     onShortcut:            (_: string, _cb: () => void) => (() => {}),

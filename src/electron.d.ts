@@ -50,6 +50,9 @@ export interface ElectronAPI {
   // WebLLM (browser mode only)
   onLocalModelProgress?: (cb: (data: { text: string; progress: number }) => void) => () => void
   webllmAvailable?: () => boolean
+  webllmModels?: () => Array<{ id: string; label: string; size: string; description: string }>
+  getActiveWebLLMModel?: () => string
+  loadWebLLMModel?: (modelId: string) => Promise<void>
 
   // Shortcuts
   onShortcut: (shortcut: string, cb: () => void) => () => void

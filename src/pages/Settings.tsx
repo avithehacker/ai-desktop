@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { POPULAR_LOCAL_MODELS, OllamaModel, PullProgress, formatBytes } from '../types'
+import { POPULAR_LOCAL_MODELS, WEBLLM_AVAILABLE_MODELS, OllamaModel, PullProgress, formatBytes } from '../types'
 
 interface SettingsProps {
   onClose: () => void
@@ -24,15 +24,26 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; error?: string }>>({})
   const [pullProgress, setPullProgress] = useState<Record<string, PullProgress>>({})
   const [theme, setTheme] = useState('dark')
+  const [webllmActiveModel, setWebllmActiveModel] = useState('')
+  const [webllmLoadingId, setWebllmLoadingId] = useState<string | null>(null)
+  const [webllmLoadProgress, setWebllmLoadProgress] = useState(0)
+  const [webllmLoadStatus, setWebllmLoadStatus] = useState('')
   const api = window.electronAPI
+  const isBrowser = (api as any)?.isBrowserMode === true
 
   useEffect(() => {
     loadData()
     if (!api) return
-    const cleanup = api.onOllamaPullProgress((progress) => {
+    const cleanupOllama = api.onOllamaPullProgress((progress) => {
       setPullProgress(prev => ({ ...prev, [progress.modelName]: progress }))
     })
-    return cleanup
+    const cleanupWebLLM = api.onLocalModelProgress?.((data) => {
+      setWebllmLoadProgress(data.progress)
+      setWebllmLoadStatus(data.text)
+      if (data.progress >= 1) setWebllmLoadingId(null)
+    })
+    if (api.getActiveWebLLMModel) setWebllmActiveModel(api.getActiveWebLLMModel())
+    return () => { cleanupOllama(); cleanupWebLLM?.() }
   }, [])
 
   const loadData = async () => {
@@ -83,9 +94,12 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
     if (!api) return
     setPullProgress(prev => ({ ...prev, [modelName]: { status: 'starting', modelName } }))
     try {
-      // Ensure Ollama is running before attempting a pull
       const status = await api.ollamaStatus()
       if (!status.running) {
+        if (isBrowser) {
+          setPullProgress(prev => ({ ...prev, [modelName]: { status: 'Error: Ollama not running. Start it locally or use a WebLLM model above.', modelName } }))
+          return
+        }
         setPullProgress(prev => ({ ...prev, [modelName]: { status: 'Starting Ollama…', modelName } }))
         await api.installOllama()
         const after = await api.ollamaStatus()
@@ -96,6 +110,21 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
       onModelsChanged()
     } catch (e: any) {
       setPullProgress(prev => ({ ...prev, [modelName]: { status: `Error: ${e.message}`, modelName } }))
+    }
+  }
+
+  const handleLoadWebLLMModel = async (modelId: string) => {
+    if (!api?.loadWebLLMModel) return
+    setWebllmLoadingId(modelId)
+    setWebllmLoadProgress(0)
+    setWebllmLoadStatus('Starting…')
+    try {
+      await api.loadWebLLMModel(modelId)
+      setWebllmActiveModel(modelId)
+      onModelsChanged()
+    } catch (e: any) {
+      setWebllmLoadStatus(`Error: ${e.message}`)
+      setWebllmLoadingId(null)
     }
   }
 
@@ -133,8 +162,6 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
     await api.setSetting('onboarding_complete', 'false')
     window.location.reload()
   }
-
-  const isBrowser = (api as any)?.isBrowserMode === true
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'models', label: 'Models' },
@@ -187,7 +214,89 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
         <div className="flex-1 overflow-y-auto p-6">
           {tab === 'models' && (
             <div className="max-w-xl space-y-8">
-              {/* Local Models */}
+
+              {/* WebLLM Models — browser mode only */}
+              {isBrowser && api.webllmAvailable?.() && (
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h2 className="font-medium">In-Browser Models</h2>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(48,209,88,0.1)', color: 'var(--green)' }}>
+                      ● WebGPU
+                    </span>
+                  </div>
+                  <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+                    Run AI locally in your browser — no install needed. Models are downloaded once and cached.
+                  </p>
+                  <div className="space-y-2">
+                    {WEBLLM_AVAILABLE_MODELS.map(m => {
+                      const isActive  = webllmActiveModel === m.id || (!webllmActiveModel && m.id === 'Llama-3.2-1B-Instruct-q4f16_1-MLC')
+                      const isLoading = webllmLoadingId === m.id
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                          style={{
+                            background: isActive ? 'var(--accent-bg)' : 'var(--bg-secondary)',
+                            border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                          }}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{m.label}</span>
+                              {isActive && (
+                                <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--accent)', color: '#fff', fontSize: '10px' }}>
+                                  active
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                              {m.size} · {m.description}
+                            </div>
+                            {isLoading && (
+                              <div className="mt-2">
+                                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-tertiary)' }}>
+                                  <div
+                                    className="h-full rounded-full transition-all duration-300"
+                                    style={{ width: `${Math.round(webllmLoadProgress * 100)}%`, background: 'var(--accent)' }}
+                                  />
+                                </div>
+                                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                                  {webllmLoadStatus} {webllmLoadProgress > 0 && webllmLoadProgress < 1 ? `${Math.round(webllmLoadProgress * 100)}%` : ''}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {!isActive && (
+                            <button
+                              onClick={() => handleLoadWebLLMModel(m.id)}
+                              disabled={!!webllmLoadingId}
+                              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
+                              style={{
+                                background: 'var(--accent-bg)',
+                                color: 'var(--accent-light)',
+                                border: '1px solid rgba(94,106,210,0.3)',
+                              }}
+                            >
+                              {isLoading ? 'Loading…' : 'Load'}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {isBrowser && !api.webllmAvailable?.() && (
+                <section>
+                  <h2 className="font-medium mb-3">In-Browser Models</h2>
+                  <div className="px-4 py-3 rounded-xl text-xs" style={{ background: 'rgba(255,159,10,0.08)', border: '1px solid rgba(255,159,10,0.2)', color: 'var(--text-secondary)' }}>
+                    WebGPU is not available in this browser. Try Chrome or Edge to use local in-browser models.
+                  </div>
+                </section>
+              )}
+
+              {/* Local Models (Ollama) */}
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <h2 className="font-medium">Local Models</h2>
