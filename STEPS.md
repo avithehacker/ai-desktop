@@ -130,12 +130,42 @@ A chronological record of everything built in this project.
 
 ---
 
+## Phase 5 — WebLLM Model Management (May 6)
+
+### Multi-Model Switcher
+- Added `WEBLLM_AVAILABLE_MODELS` list with 7 models selectable from Settings:
+  - Llama 3.2 1B (700 MB) — default, runs on most devices
+  - Llama 3.2 3B (2.0 GB)
+  - Phi 3.5 Mini (2.2 GB) — Microsoft, strong reasoning
+  - Gemma 2 2B (1.4 GB) — Google
+  - Qwen 2.5 1.5B (900 MB) — Alibaba, multilingual
+  - SmolLM2 1.7B (1.0 GB) — lightweight
+  - Mistral 7B (4.3 GB) — high quality, needs 8 GB+ RAM
+- Active model stored in `localStorage` (`rj:webllm:model`), persists across sessions
+- Engine detects model switches and resets the WebGPU context automatically
+
+### Remove & Reset Controls
+- **Reset** — calls `engine.resetChat()` to clear conversation memory without re-downloading
+- **Remove** — unloads engine from GPU/RAM + calls `deleteModelAllInfoInCache()` to delete cached model files from browser, freeing disk space. Resets active model to default.
+- Both buttons shown only on the currently active model card
+
+### Memory Safety
+- Switching models now calls `engine.unload()` before loading the new one — prevents two models occupying GPU memory simultaneously
+- Closing the browser tab releases all GPU/RAM (WebGPU context destroyed by browser)
+- Downloaded model files persist in browser Cache API across sessions (no re-download needed)
+
+### Bug Fix
+- Fixed crash when clicking "Download" on Ollama models in browser mode — was throwing "Ollama could not be started. Please restart the app." Now shows a clear message directing users to WebLLM models instead.
+
+---
+
 ## Current State (May 6)
 
 | Component | Status |
 |---|---|
 | Electron desktop app | Working — Mac, Windows, Linux |
 | Web app (browser) | Working — zero install, WebLLM in-browser inference |
+| WebLLM model switcher | Working — 7 models, Load / Reset / Remove controls |
 | CLI (`ram`) | Working — ask, pipe, config, serve |
 | VS Code extension | Working — packaged as `.vsix` |
 | HTTP API | Working — `POST /v1/prompt` |
