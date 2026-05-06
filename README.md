@@ -167,3 +167,55 @@ API keys are stored at `~/.ramanujan/config.json`:
 ```
 
 Set via `ram config --anthropic YOUR_KEY` or through the app's onboarding.
+
+---
+
+## Build History
+
+### Phase 1 — Foundation (Apr 27)
+
+- Initial repo: Electron + React + TypeScript + Vite + Tailwind
+- Ramanujan theme — white minimalist design, portfolio typography
+- GitHub Actions CI groundwork, fixed `db.ts` crypto import, ICO encoding
+
+### Phase 2 — Full Platform (Apr 28)
+
+- **Smart LLM router** (`electron/router.ts`) — classifies every prompt silently, routes to local or cloud, escalates automatically if local quality is low. Adaptive weight learning improves routing over time.
+- **CLI** (`ram`) — ask questions, pipe files, configure keys, start HTTP server
+- **VS Code extension** — `Cmd+Shift+R` ask, `Cmd+Shift+E` explain selected code
+- **HTTP API** — `POST /v1/prompt` at port 4242
+- **Forced onboarding** — installs Ollama + Gemma 2B on first launch, connects one cloud provider
+- **OS keychain** — API keys never stored in plain files
+- **SQLite chat history** — `electron/db.ts`
+- Release pipeline: native CLI binaries per OS, Linux AppImage, VS Code VSIX, GitHub Release on `v*` tag
+
+### Phase 3 — UX & Provider Polish (May 5)
+
+- Electron 41 compatibility fixes
+- Google Gemini added to onboarding
+- GitHub OAuth via Device Flow; skip onboarding option for returning users
+- Restart onboarding button in Settings > Data
+- Minimalist chat UI redesign — cleaner, faster-feeling layout
+
+### Phase 4 — Web App Mode (May 6)
+
+- **Pure web app** — entire app runs in-browser, zero download required
+- `src/browserAPI.ts` — browser-compatible API layer, auto-detected at runtime
+- **Bundle size** shrunk from ~3 GB → ~115 MB for desktop
+- **WebLLM** — in-browser local inference via WebGPU (no Ollama needed)
+- Downloads tab in Settings (browser mode) for WebLLM models
+- Google Gemini added to router; Settings shows all free providers
+- System prompt rewritten for simpler, friendlier responses
+- HTTPS → Ollama limitation documented with fix instructions
+
+### Current State
+
+| Component | Status |
+|---|---|
+| Electron desktop app | Working — Mac, Windows, Linux |
+| Web app (browser) | Working — zero install, WebLLM in-browser inference |
+| CLI (`ram`) | Working — ask, pipe, config, serve |
+| VS Code extension | Working — packaged as `.vsix` |
+| HTTP API | Working — `POST /v1/prompt` |
+| Smart router | Working — local-first, cloud escalation, Gemini added |
+| CI/CD pipeline | Working — build on push, release on `v*` tag |
