@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { Message, AttachedFile } from '../types'
+import logoUrl from '../assets/logo.png'
 import MessageBubble from './MessageBubble'
 import InputBar from './InputBar'
 
@@ -78,7 +79,7 @@ function EmptyState() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
       <div style={{ textAlign: 'center' }}>
-        <img src="/logo.png" alt="Ramanujan" style={{ width: 56, height: 56, borderRadius: 14, opacity: 0.18, display: 'block', margin: '0 auto' }} />
+        <img src={logoUrl} alt="Ramanujan" style={{ width: 56, height: 56, borderRadius: 14, opacity: 0.18, display: 'block', margin: '0 auto' }} />
       </div>
     </div>
   )

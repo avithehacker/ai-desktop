@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Chat } from '../types'
+import logoUrl from '../assets/logo.png'
 
 interface SidebarProps {
   chats: Chat[]
@@ -19,7 +20,7 @@ export default function Sidebar({ chats, activeChatId, onNewChat, onSelectChat, 
 
       {/* Header: logo + wordmark + new chat */}
       <div className="drag-region" style={{ height: 52, flexShrink: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 6, padding: '0 16px 10px' }}>
-        <img src="/logo.png" alt="" style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0 }} />
+        <img src={logoUrl} alt="" style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0 }} />
         <span className="no-drag select-none" style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 400, letterSpacing: '0.08em', color: 'var(--text-primary)', lineHeight: 1 }}>
           Ramanujan
         </span>
