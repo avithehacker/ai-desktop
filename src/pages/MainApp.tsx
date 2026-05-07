@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import ChatArea from '../components/ChatArea'
 import Settings from './Settings'
-import { Chat, Message } from '../types'
+import { Chat, Message, AttachedFile } from '../types'
 
 type View = 'chat' | 'settings'
 
@@ -15,10 +15,14 @@ export default function MainApp() {
   const [streamingText, setStreamingText] = useState('')
   const [streamError, setStreamError] = useState('')
   const [modelProgress, setModelProgress] = useState<{ text: string; progress: number } | null>(null)
+  const [configuredProviders, setConfiguredProviders] = useState<string[]>([])
 
   const api = window.electronAPI
 
-  useEffect(() => { loadChats() }, [])
+  useEffect(() => {
+    loadChats()
+    api?.listConfiguredProviders().then(setConfiguredProviders)
+  }, [])
   useEffect(() => { if (activeChatId) loadMessages(activeChatId); else setMessages([]) }, [activeChatId])
 
   useEffect(() => {
@@ -102,28 +106,48 @@ export default function MainApp() {
     await loadChats()
   }
 
-  const handleSendMessage = async (content: string) => {
-    if (!content.trim() || isStreaming || !api) return
+  const handleSendMessage = async (content: string, files: AttachedFile[] = []) => {
+    const textFiles  = files.filter(f => f.category === 'text' || f.category === 'pdf')
+    const imageFiles = files.filter(f => f.category === 'image')
+
+    // Inject text/pdf file contents as code blocks
+    let fullContent = content
+    for (const f of textFiles) {
+      fullContent = `[File: ${f.name}]\n\`\`\`\n${f.text}\n\`\`\`\n\n${fullContent}`
+    }
+    // For display, note attached images
+    const imageNote = imageFiles.length > 0
+      ? imageFiles.map(f => `[Image: ${f.name}]`).join(' ') + '\n\n'
+      : ''
+    const displayContent = imageNote + fullContent
+
+    if (!displayContent.trim() || isStreaming || !api) return
 
     let chatId = activeChatId
+    const title = (content || files[0]?.name || 'File').slice(0, 60)
     if (!chatId) {
-      const chat = await api.createChat(content.slice(0, 60))
+      const chat = await api.createChat(title)
       chatId = chat.id
       setActiveChatId(chatId)
       setChats(prev => [chat, ...prev])
     } else if (messages.length === 0) {
-      await api.renameChat(chatId, content.slice(0, 60))
+      await api.renameChat(chatId, title)
     }
 
-    const userMsg = await api.addMessage(chatId, 'user', content, '')
+    const userMsg = await api.addMessage(chatId, 'user', displayContent, '')
     setMessages(prev => [...prev, userMsg])
     setStreamError('')
     setIsStreaming(true)
     setStreamingText('')
 
-    const history = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }))
+    // History uses fullContent (without image note) for context; images sent as attachments
+    const history = [
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+      { role: 'user', content: fullContent },
+    ]
+    const imageAttachments = imageFiles.map(f => ({ mimeType: f.mimeType, dataUrl: f.dataUrl }))
 
-    await api.streamMessage({ messages: history, chatId })
+    await api.streamMessage({ messages: history, chatId, attachments: imageAttachments })
   }
 
   return (
@@ -147,6 +171,7 @@ export default function MainApp() {
             isStreaming={isStreaming}
             streamError={streamError}
             modelProgress={modelProgress}
+            configuredProviders={configuredProviders}
             onSend={handleSendMessage}
           />
         )}

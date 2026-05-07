@@ -84,3 +84,49 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1e9) return `${(bytes / 1e6).toFixed(0)} MB`
   return `${(bytes / 1e9).toFixed(1)} GB`
 }
+
+export type FileCategory = 'image' | 'text' | 'pdf' | 'unsupported'
+
+export interface AttachedFile {
+  name: string
+  mimeType: string
+  dataUrl: string   // for images
+  text: string      // for text/pdf files
+  size: number
+  category: FileCategory
+}
+
+const TEXT_EXTS = ['.txt','.md','.csv','.json','.yaml','.yml','.xml','.html','.css',
+  '.js','.ts','.tsx','.jsx','.py','.java','.cpp','.c','.h','.rs','.go','.rb','.sh','.sql','.env','.toml','.ini']
+
+export function categoriseFile(mimeType: string, name: string): FileCategory {
+  if (mimeType.startsWith('image/')) return 'image'
+  if (mimeType === 'application/pdf') return 'pdf'
+  if (mimeType.startsWith('text/') || TEXT_EXTS.some(ext => name.toLowerCase().endsWith(ext))) return 'text'
+  return 'unsupported'
+}
+
+// Which models support which file types
+export const MODEL_FILE_SUPPORT: Record<string, { image: boolean; pdf: boolean }> = {
+  webllm:    { image: false, pdf: false },
+  ollama:    { image: false, pdf: false },
+  claude:    { image: true,  pdf: false },
+  openai:    { image: true,  pdf: false },
+  google:    { image: true,  pdf: false },
+  github:    { image: true,  pdf: false },
+}
+
+export function getFileWarnings(
+  files: AttachedFile[],
+  configuredProviders: string[]
+): string[] {
+  const warnings: string[] = []
+  const hasVision = configuredProviders.some(p => ['anthropic', 'openai', 'google', 'github'].includes(p))
+  if (files.some(f => f.category === 'image') && !hasVision)
+    warnings.push('Images need a cloud vision model. Add Claude, OpenAI, or Gemini in Settings → Models.')
+  if (files.some(f => f.category === 'pdf'))
+    warnings.push('PDF text will be extracted — complex layouts may not read correctly.')
+  if (files.some(f => f.category === 'unsupported'))
+    warnings.push('Some files are unsupported and will be skipped.')
+  return warnings
+}

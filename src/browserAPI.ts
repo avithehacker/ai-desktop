@@ -184,7 +184,8 @@ async function ollamaOk(): Promise<boolean> {
 
 async function streamToChat(
   chatId: string,
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ role: string; content: string }>,
+  imageAttachments?: Array<{ mimeType: string; dataUrl: string }>
 ): Promise<void> {
   const avail = new Set<ModelKey>()
   if (await ollamaOk())    avail.add('ollama')
@@ -247,12 +248,21 @@ async function streamToChat(
       }
 
     } else if (model === 'claude') {
+      const lastIdx = withSys.filter(m => m.role !== 'system').length - 1
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': getKey('anthropic')!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5', max_tokens: 4096, stream: true,
-          messages: withSys.filter(m => m.role !== 'system').map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+          messages: withSys.filter(m => m.role !== 'system').map((m, i) => ({
+            role: m.role as 'user' | 'assistant',
+            content: (i === lastIdx && imageAttachments?.length)
+              ? [
+                  ...imageAttachments.map(img => ({ type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.dataUrl.split(',')[1] } })),
+                  { type: 'text', text: m.content },
+                ]
+              : m.content,
+          })),
           ...(withSys[0]?.role === 'system' ? { system: withSys[0].content } : {}),
         }),
       })
@@ -265,12 +275,24 @@ async function streamToChat(
       })
 
     } else if (model === 'openai' || model === 'github') {
-      const base = model === 'openai' ? 'https://api.openai.com/v1' : 'https://models.inference.ai.azure.com'
-      const key  = model === 'openai' ? getKey('openai')! : getKey('github')!
+      const base     = model === 'openai' ? 'https://api.openai.com/v1' : 'https://models.inference.ai.azure.com'
+      const key      = model === 'openai' ? getKey('openai')! : getKey('github')!
+      const lastIdx  = withSys.length - 1
       const res  = await fetch(`${base}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', stream: true, messages: withSys }),
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', stream: true,
+          messages: withSys.map((m, i) => ({
+            role: m.role,
+            content: (i === lastIdx && imageAttachments?.length)
+              ? [
+                  ...imageAttachments.map(img => ({ type: 'image_url', image_url: { url: img.dataUrl } })),
+                  { type: 'text', text: m.content },
+                ]
+              : m.content,
+          })),
+        }),
       })
       if (!res.ok) throw new Error(`API error (${res.status})`)
       await readSSE(res, raw => {
@@ -279,9 +301,17 @@ async function streamToChat(
       })
 
     } else if (model === 'google') {
-      const contents = withSys
-        .filter(m => m.role !== 'system')
-        .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }))
+      const nonSys  = withSys.filter(m => m.role !== 'system')
+      const lastIdx = nonSys.length - 1
+      const contents = nonSys.map((m, i) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: (i === lastIdx && imageAttachments?.length)
+          ? [
+              ...imageAttachments.map(img => ({ inline_data: { mime_type: img.mimeType, data: img.dataUrl.split(',')[1] } })),
+              { text: m.content },
+            ]
+          : [{ text: m.content }],
+      }))
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${getKey('google')!}&alt=sse`,
         { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ contents }) }
@@ -398,8 +428,8 @@ export function createBrowserAPI() {
     onInstallProgress: (_: any) => (() => {}),
 
     // AI streaming
-    streamMessage: ({ messages, chatId }: { messages: Array<{ role: string; content: string }>; chatId: string }) => {
-      streamToChat(chatId, messages); return Promise.resolve()
+    streamMessage: ({ messages, chatId, attachments }: { messages: Array<{ role: string; content: string }>; chatId: string; attachments?: Array<{ mimeType: string; dataUrl: string }> }) => {
+      streamToChat(chatId, messages, attachments); return Promise.resolve()
     },
     testApiKey:    testKey,
     onStreamChunk: (cb: ChunkCb)    => { chunkCbs.add(cb);    return () => chunkCbs.delete(cb)    },

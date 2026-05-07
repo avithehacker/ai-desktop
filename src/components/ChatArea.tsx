@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Message } from '../types'
+import { Message, AttachedFile } from '../types'
 import MessageBubble from './MessageBubble'
 import InputBar from './InputBar'
 
@@ -9,10 +9,11 @@ interface ChatAreaProps {
   isStreaming: boolean
   streamError: string
   modelProgress?: { text: string; progress: number } | null
-  onSend: (content: string) => void
+  configuredProviders: string[]
+  onSend: (content: string, files: AttachedFile[]) => void
 }
 
-export default function ChatArea({ messages, streamingText, isStreaming, streamError, modelProgress, onSend }: ChatAreaProps) {
+export default function ChatArea({ messages, streamingText, isStreaming, streamError, modelProgress, configuredProviders, onSend }: ChatAreaProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function ChatArea({ messages, streamingText, isStreaming, streamE
         )}
       </div>
 
-      <InputBar onSend={onSend} isStreaming={isStreaming} />
+      <InputBar onSend={onSend} isStreaming={isStreaming} configuredProviders={configuredProviders} />
     </div>
   )
 }

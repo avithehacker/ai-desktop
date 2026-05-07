@@ -40,6 +40,7 @@ export interface ElectronAPI {
   streamMessage: (payload: {
     messages: Array<{ role: string; content: string }>
     chatId: string
+    attachments?: Array<{ mimeType: string; dataUrl: string }>
   }) => Promise<void>
   testApiKey: (provider: string, key: string) => Promise<{ ok: boolean; error?: string }>
 
