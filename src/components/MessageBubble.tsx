@@ -64,17 +64,22 @@ export default function MessageBubble({ message, isStreaming, streamingText }: M
 
   if (isUser) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-        <div style={{
-          maxWidth: '72%', padding: '10px 14px',
-          borderRadius: '16px 16px 4px 16px',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border)',
-          fontSize: 14, lineHeight: 1.6,
-          color: 'var(--text-primary)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }} className="selectable">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <div
+          className="selectable"
+          style={{
+            maxWidth: '76%',
+            padding: '9px 14px',
+            borderRadius: '14px 14px 3px 14px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            fontSize: 14,
+            lineHeight: 1.6,
+            color: 'var(--text-primary)',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}
+        >
           {message.content}
         </div>
       </div>
@@ -82,8 +87,11 @@ export default function MessageBubble({ message, isStreaming, streamingText }: M
   }
 
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div className="selectable" style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--text-primary)' }}>
+    <div style={{ marginBottom: 20 }}>
+      <div
+        className="selectable"
+        style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-primary)' }}
+      >
         <ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>
           {content}
         </ReactMarkdown>

@@ -50,22 +50,43 @@ export default function InputBar({ onSend, isStreaming, configuredProviders }: I
   const canSend = (text.trim().length > 0 || files.some(f => f.category !== 'unsupported')) && !isStreaming
 
   return (
-    <div className="no-drag" style={{ padding: '0 28px 20px', maxWidth: '42rem', margin: '0 auto', width: '100%' }}>
+    <div className="no-drag" style={{ padding: '0 24px 20px', maxWidth: '42rem', margin: '0 auto', width: '100%' }}>
 
-      {/* File chips */}
+      {/* Attached file chips */}
       {files.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {files.map((f, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '3px 8px', borderRadius: 6, fontSize: 12,
-              background: f.category === 'unsupported' ? 'rgba(220,38,38,0.06)' : 'var(--bg-elevated)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              height: 28,
+              padding: '0 10px 0 8px',
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 500,
+              background: f.category === 'unsupported' ? 'rgba(220,38,38,0.05)' : 'var(--bg-secondary)',
               border: `1px solid ${f.category === 'unsupported' ? 'rgba(220,38,38,0.2)' : 'var(--border)'}`,
               color: f.category === 'unsupported' ? 'var(--red)' : 'var(--text-secondary)',
             }}>
-              <span>{fileIcon(f.category)}</span>
-              <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-              <button onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: '0 0 0 2px', lineHeight: 1, opacity: 0.6 }}>×</button>
+              <span style={{ fontSize: 13, lineHeight: 1 }}>{fileIcon(f.category)}</span>
+              <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {f.name}
+              </span>
+              <button
+                onClick={() => removeFile(i)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 14, height: 14, marginLeft: 2,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'inherit', opacity: 0.5, padding: 0, borderRadius: '50%',
+                  fontSize: 14, lineHeight: 1,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
+              >
+                ×
+              </button>
             </div>
           ))}
         </div>
@@ -74,25 +95,44 @@ export default function InputBar({ onSend, isStreaming, configuredProviders }: I
       {/* Warnings */}
       {warnings.map((w, i) => (
         <div key={i} style={{
-          marginBottom: 6, padding: '7px 12px', borderRadius: 8, fontSize: 12,
-          background: 'rgba(255,159,10,0.07)', border: '1px solid rgba(255,159,10,0.2)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8,
+          marginBottom: 8,
+          padding: '9px 12px',
+          borderRadius: 10,
+          fontSize: 12,
+          lineHeight: 1.5,
+          background: 'rgba(202,138,4,0.06)',
+          border: '1px solid rgba(202,138,4,0.18)',
           color: 'var(--text-secondary)',
         }}>
-          ⚠ {w}
+          <span style={{ color: 'var(--yellow)', flexShrink: 0, marginTop: 1 }}>⚠</span>
+          <span>{w}</span>
         </div>
       ))}
 
-      {/* Input row */}
-      <div style={{
-        display: 'flex', alignItems: 'flex-end', gap: 8,
-        border: '1px solid var(--border)',
-        borderRadius: 14, padding: '10px 10px 10px 12px',
-        background: 'var(--bg-primary)',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
-      }}
-        onFocusCapture={e => { const el = e.currentTarget; el.style.borderColor = 'var(--text-muted)'; el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)' }}
-        onBlurCapture={e => { const el = e.currentTarget; el.style.borderColor = 'var(--border)'; el.style.boxShadow = '0 1px 6px rgba(0,0,0,0.05)' }}
+      {/* Input box */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 8,
+          padding: '10px 10px 10px 14px',
+          border: '1px solid var(--border)',
+          borderRadius: 14,
+          background: 'var(--bg-primary)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+        }}
+        onFocusCapture={e => {
+          e.currentTarget.style.borderColor = 'var(--text-muted)'
+          e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,0.07)'
+        }}
+        onBlurCapture={e => {
+          e.currentTarget.style.borderColor = 'var(--border)'
+          e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)'
+        }}
       >
         {/* Attach button */}
         <button
@@ -100,13 +140,27 @@ export default function InputBar({ onSend, isStreaming, configuredProviders }: I
           disabled={isStreaming}
           title="Attach file"
           style={{
-            flexShrink: 0, width: 28, height: 28, borderRadius: 7,
+            flexShrink: 0,
+            width: 30, height: 30,
+            borderRadius: 8,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'transparent', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s',
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            color: 'var(--text-muted)',
+            cursor: isStreaming ? 'default' : 'pointer',
+            transition: 'all 0.15s',
+            opacity: isStreaming ? 0.4 : 1,
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}
+          onMouseEnter={e => {
+            if (!isStreaming) {
+              e.currentTarget.style.borderColor = 'var(--text-muted)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-muted)'
+          }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
@@ -131,18 +185,29 @@ export default function InputBar({ onSend, isStreaming, configuredProviders }: I
           rows={1}
           disabled={isStreaming}
           style={{
-            flex: 1, resize: 'none', background: 'transparent', outline: 'none',
-            border: 'none', fontSize: 14, lineHeight: 1.6,
-            color: 'var(--text-primary)', maxHeight: 180, overflowY: 'auto',
+            flex: 1,
+            resize: 'none',
+            background: 'transparent',
+            outline: 'none',
+            border: 'none',
+            fontSize: 14,
+            lineHeight: 1.6,
+            color: 'var(--text-primary)',
+            maxHeight: 180,
+            overflowY: 'auto',
             fontFamily: 'Inter, system-ui, sans-serif',
+            padding: 0,
           }}
         />
 
+        {/* Send button */}
         <button
           onClick={handleSend}
           disabled={!canSend}
           style={{
-            flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+            flexShrink: 0,
+            width: 30, height: 30,
+            borderRadius: 8,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: canSend ? 'var(--text-primary)' : 'transparent',
             border: `1px solid ${canSend ? 'transparent' : 'var(--border)'}`,
@@ -152,7 +217,12 @@ export default function InputBar({ onSend, isStreaming, configuredProviders }: I
           }}
         >
           {isStreaming ? (
-            <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid currentColor', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%',
+              border: '1.5px solid currentColor',
+              borderTopColor: 'transparent',
+              animation: 'spin 0.7s linear infinite',
+            }} />
           ) : (
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <path d="M6.5 11V2M2 6.5l4.5-4.5 4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
