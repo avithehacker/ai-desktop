@@ -17,8 +17,9 @@ export default function Sidebar({ chats, activeChatId, onNewChat, onSelectChat, 
   return (
     <div className="flex flex-col shrink-0 no-drag" style={{ width: 220, borderRight: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
 
-      {/* Header: wordmark + new chat */}
+      {/* Header: logo + wordmark + new chat */}
       <div className="drag-region" style={{ height: 52, flexShrink: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', gap: 6, padding: '0 16px 10px' }}>
+        <img src="/logo.png" alt="" style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0 }} />
         <span className="no-drag select-none" style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 400, letterSpacing: '0.08em', color: 'var(--text-primary)', lineHeight: 1 }}>
           Ramanujan
         </span>

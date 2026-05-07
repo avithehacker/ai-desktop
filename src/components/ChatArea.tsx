@@ -78,7 +78,7 @@ function EmptyState() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
       <div style={{ textAlign: 'center' }}>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: '2.2rem', fontWeight: 300, color: 'var(--border)', lineHeight: 1, display: 'block' }}>∑</span>
+        <img src="/logo.png" alt="Ramanujan" style={{ width: 56, height: 56, borderRadius: 14, opacity: 0.18, display: 'block', margin: '0 auto' }} />
       </div>
     </div>
   )
