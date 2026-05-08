@@ -125,9 +125,11 @@ function selectModel(scores: Record<ModelKey, number>): ModelKey {
 // ── Step 5: Quality Check ──────────────────────────────────────────────────────
 
 function isBadResponse(response: string): boolean {
-  if (response.trim().length < 30) return true
-  if (/\b(i don'?t know|i'?m not sure|i cannot|i can'?t help|i'?m unable)\b/i.test(response)) return true
-  if (/^(sure|okay|ok|yes|no|hello)[.!]?\s*$/i.test(response.trim())) return true
+  const trimmed = response.trim()
+  if (trimmed.length === 0) return true
+  // Only flag truly empty/refusal responses — short factual answers ("Yes", "42") are valid
+  if (/^\s*$/i.test(trimmed)) return true
+  if (/^(i don'?t know|i'?m not sure|i cannot help|i can'?t help with that|i'?m unable to)[.!]?\s*$/i.test(trimmed)) return true
   return false
 }
 
@@ -148,7 +150,7 @@ async function ollamaAvailable(): Promise<boolean> {
 
 const PROVIDER_MAP: Record<ModelKey, { provider: string; model: string }> = {
   local:  { provider: 'ollama',     model: 'llama3.2:1b' },
-  claude: { provider: 'anthropic',  model: 'claude-haiku-4-5' },
+  claude: { provider: 'anthropic',  model: 'claude-haiku-4-5-20251001' },
   openai: { provider: 'openai',     model: 'gpt-4o-mini' },
   github: { provider: 'github',     model: 'gpt-4o-mini' },
   google: { provider: 'google',     model: 'gemini-2.0-flash' },
@@ -211,7 +213,7 @@ export async function route(
     : messagesWithSystem
 
   // Steps 3–4: score + select
-  const weights = db?.getWeightsForIntent(meta.intent) ?? { local: 1, claude: 1, openai: 1 }
+  const weights = db?.getWeightsForIntent(meta.intent) ?? { local: 1, claude: 1, openai: 1, github: 1, google: 1 }
   const scores = scoreModels(meta, available, weights)
   const ranked = (Object.entries(scores) as [ModelKey, number][])
     .sort(([, a], [, b]) => b - a)

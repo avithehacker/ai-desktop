@@ -163,7 +163,7 @@ export default function MainApp() {
       />
       <div className="flex-1 flex flex-col min-w-0">
         {view === 'settings' ? (
-          <Settings onClose={() => setView('chat')} onModelsChanged={() => {}} />
+          <Settings onClose={() => setView('chat')} onModelsChanged={() => { api?.listConfiguredProviders().then(setConfiguredProviders) }} />
         ) : (
           <ChatArea
             messages={messages}

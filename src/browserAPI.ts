@@ -253,7 +253,7 @@ async function streamToChat(
         method: 'POST',
         headers: { 'x-api-key': getKey('anthropic')!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5', max_tokens: 4096, stream: true,
+          model: 'claude-haiku-4-5-20251001', max_tokens: 4096, stream: true,
           messages: withSys.filter(m => m.role !== 'system').map((m, i) => ({
             role: m.role as 'user' | 'assistant',
             content: (i === lastIdx && imageAttachments?.length)
@@ -338,7 +338,7 @@ async function testKey(provider: string, key: string): Promise<{ ok: boolean; er
         const r = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] }),
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'Hi' }] }),
         })
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return { ok: true }

@@ -440,18 +440,22 @@ export default function Settings({ onClose, onModelsChanged }: SettingsProps) {
                               </div>
                             )}
                           </div>
-                          <button
-                            onClick={() => handlePullModel(pm.name)}
-                            disabled={isDownloading}
-                            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
-                            style={{
-                              background: 'var(--accent-bg)',
-                              color: 'var(--accent-light)',
-                              border: '1px solid rgba(94,106,210,0.3)',
-                            }}
-                          >
-                            {isDownloading ? 'Downloading...' : 'Download'}
-                          </button>
+                          {isBrowser ? (
+                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Install via Ollama</span>
+                          ) : (
+                            <button
+                              onClick={() => handlePullModel(pm.name)}
+                              disabled={isDownloading}
+                              className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 disabled:opacity-50"
+                              style={{
+                                background: 'var(--accent-bg)',
+                                color: 'var(--accent-light)',
+                                border: '1px solid rgba(94,106,210,0.3)',
+                              }}
+                            >
+                              {isDownloading ? 'Downloading...' : 'Download'}
+                            </button>
+                          )}
                         </div>
                       )
                     })}

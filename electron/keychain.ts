@@ -46,7 +46,7 @@ export class KeychainManager {
   }
 
   async listConfigured(): Promise<string[]> {
-    const providers = ['anthropic', 'openai', 'google']
+    const providers = ['anthropic', 'openai', 'google', 'github']
     const configured: string[] = []
     for (const p of providers) {
       const key = await this.get(p)

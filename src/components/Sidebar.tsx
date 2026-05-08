@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Chat } from '../types'
 import logoUrl from '../assets/logo.png'
 
@@ -14,6 +14,7 @@ interface SidebarProps {
 
 export default function Sidebar({ chats, activeChatId, onNewChat, onSelectChat, onDeleteChat, onSettings, isSettingsActive }: SidebarProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const isMac = useMemo(() => /Mac|iPhone|iPad|iPod/.test(navigator.platform), [])
 
   return (
     <div className="flex flex-col shrink-0 no-drag" style={{
@@ -54,7 +55,7 @@ export default function Sidebar({ chats, activeChatId, onNewChat, onSelectChat, 
         <button
           onClick={onNewChat}
           className="no-drag"
-          title="New chat (⌘N)"
+          title={isMac ? 'New chat (⌘N)' : 'New chat (Ctrl+N)'}
           style={{
             width: 26, height: 26, borderRadius: 7,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -175,7 +176,7 @@ export default function Sidebar({ chats, activeChatId, onNewChat, onSelectChat, 
             <path d="M7 1.5V3M7 11v1.5M1.5 7H3M11 7h1.5M3.05 3.05l1.06 1.06M9.89 9.89l1.06 1.06M10.95 3.05L9.89 4.11M4.11 9.89L3.05 10.95" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
           </svg>
           <span>Settings</span>
-          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', opacity: 0.7 }}>⌘,</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-muted)', opacity: 0.7 }}>{isMac ? '⌘,' : 'Ctrl+,'}</span>
         </button>
       </div>
     </div>

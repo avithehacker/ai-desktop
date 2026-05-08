@@ -107,14 +107,17 @@ function EmptyState() {
       alignItems: 'center',
       justifyContent: 'center',
       height: '100%',
-      gap: 12,
+      gap: 14,
       userSelect: 'none',
     }}>
       <img
         src={logoUrl}
         alt="Ramanujan"
-        style={{ width: 48, height: 48, borderRadius: 12, opacity: 0.15 }}
+        style={{ width: 48, height: 48, borderRadius: 12, opacity: 0.12 }}
       />
+      <p style={{ fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.01em' }}>
+        Ask anything
+      </p>
     </div>
   )
 }
