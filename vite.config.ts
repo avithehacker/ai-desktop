@@ -16,6 +16,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    strictPort: true,
     headers: {
       // Required for SharedArrayBuffer used by WebLLM workers
       'Cross-Origin-Opener-Policy': 'same-origin',
