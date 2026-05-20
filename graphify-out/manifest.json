@@ -1,0 +1,232 @@
+{
+  "/Users/avinash/Documents/ai-desktop/tsconfig.node.json": {
+    "mtime": 1777453991.6517932,
+    "ast_hash": "767b2e9abe6452170cdc399ca052cfbc",
+    "semantic_hash": "767b2e9abe6452170cdc399ca052cfbc"
+  },
+  "/Users/avinash/Documents/ai-desktop/tailwind.config.js": {
+    "mtime": 1777453991.651198,
+    "ast_hash": "6a3a37c82c53248b93b047b8eb19491d",
+    "semantic_hash": "6a3a37c82c53248b93b047b8eb19491d"
+  },
+  "/Users/avinash/Documents/ai-desktop/tsconfig.electron.json": {
+    "mtime": 1777453991.651389,
+    "ast_hash": "890f46ae7e328ce4e5f5ded10063c8a3",
+    "semantic_hash": "890f46ae7e328ce4e5f5ded10063c8a3"
+  },
+  "/Users/avinash/Documents/ai-desktop/afterPack.js": {
+    "mtime": 1778041847.25969,
+    "ast_hash": "37d5d1dd306bf538f3249a9ed32f4b73",
+    "semantic_hash": "37d5d1dd306bf538f3249a9ed32f4b73"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron-builder.config.js": {
+    "mtime": 1777453991.640422,
+    "ast_hash": "be8ec948f49af4ba3b446d3255368399",
+    "semantic_hash": "be8ec948f49af4ba3b446d3255368399"
+  },
+  "/Users/avinash/Documents/ai-desktop/package.json": {
+    "mtime": 1778041847.26718,
+    "ast_hash": "7f7d01dca55684a1f5ef2aaf607f043e",
+    "semantic_hash": "7f7d01dca55684a1f5ef2aaf607f043e"
+  },
+  "/Users/avinash/Documents/ai-desktop/tsconfig.json": {
+    "mtime": 1777453991.6515594,
+    "ast_hash": "d0bd641075b596623fdadf469a23f746",
+    "semantic_hash": "d0bd641075b596623fdadf469a23f746"
+  },
+  "/Users/avinash/Documents/ai-desktop/vite.config.ts": {
+    "mtime": 1778041847.274541,
+    "ast_hash": "ed32a89c4f0f8bca0cfe8c72d02b6c60",
+    "semantic_hash": "ed32a89c4f0f8bca0cfe8c72d02b6c60"
+  },
+  "/Users/avinash/Documents/ai-desktop/postcss.config.js": {
+    "mtime": 1777453991.6465247,
+    "ast_hash": "ef3ba2a81ba19f8ea5ddf625521e96f0",
+    "semantic_hash": "ef3ba2a81ba19f8ea5ddf625521e96f0"
+  },
+  "/Users/avinash/Documents/ai-desktop/.claude/settings.local.json": {
+    "mtime": 1779269801.3852632,
+    "ast_hash": "7f7c86f157fa25a97b014d7b2af0acbe",
+    "semantic_hash": "7f7c86f157fa25a97b014d7b2af0acbe"
+  },
+  "/Users/avinash/Documents/ai-desktop/cli/package.json": {
+    "mtime": 1777453991.6396906,
+    "ast_hash": "262418fd5b9be6432019f8f07065d398",
+    "semantic_hash": "262418fd5b9be6432019f8f07065d398"
+  },
+  "/Users/avinash/Documents/ai-desktop/cli/tsconfig.json": {
+    "mtime": 1777453991.6401596,
+    "ast_hash": "1e739b1db23516b4331f0b3827f812cc",
+    "semantic_hash": "1e739b1db23516b4331f0b3827f812cc"
+  },
+  "/Users/avinash/Documents/ai-desktop/cli/src/index.ts": {
+    "mtime": 1778041847.2602174,
+    "ast_hash": "7993b65b48a129daef0f838ed5b07de0",
+    "semantic_hash": "7993b65b48a129daef0f838ed5b07de0"
+  },
+  "/Users/avinash/Documents/ai-desktop/api/src/server.ts": {
+    "mtime": 1777453991.6286438,
+    "ast_hash": "1ae1a930a49a23632722e2476187582d",
+    "semantic_hash": "1ae1a930a49a23632722e2476187582d"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/ollama.ts": {
+    "mtime": 1777453991.642564,
+    "ast_hash": "38278616345604e7e810f9ed889b8f20",
+    "semantic_hash": "38278616345604e7e810f9ed889b8f20"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/main.ts": {
+    "mtime": 1778041847.2619987,
+    "ast_hash": "7149cf35644a6d57fda55af0a4841d5a",
+    "semantic_hash": "7149cf35644a6d57fda55af0a4841d5a"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/router.ts": {
+    "mtime": 1778041847.2639785,
+    "ast_hash": "b40dfcff9f8b88f594fbd4dd0bd016e0",
+    "semantic_hash": "b40dfcff9f8b88f594fbd4dd0bd016e0"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/keychain.ts": {
+    "mtime": 1777453991.6415958,
+    "ast_hash": "fa7074d302b3ca5b2e191c1f94ae03da",
+    "semantic_hash": "fa7074d302b3ca5b2e191c1f94ae03da"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/aiProviders.ts": {
+    "mtime": 1778041847.261017,
+    "ast_hash": "27a71e498519d99f0d6f7829da94044b",
+    "semantic_hash": "27a71e498519d99f0d6f7829da94044b"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/installer.ts": {
+    "mtime": 1778041847.2614968,
+    "ast_hash": "0c5edfa9724d2b7ccbfd4cb031178d18",
+    "semantic_hash": "0c5edfa9724d2b7ccbfd4cb031178d18"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/preload.ts": {
+    "mtime": 1778041847.2628477,
+    "ast_hash": "8e11dca8421c35c22471247feb0a4da9",
+    "semantic_hash": "8e11dca8421c35c22471247feb0a4da9"
+  },
+  "/Users/avinash/Documents/ai-desktop/electron/db.ts": {
+    "mtime": 1777453991.6411757,
+    "ast_hash": "1418a7c5f464440372d55824438f74df",
+    "semantic_hash": "1418a7c5f464440372d55824438f74df"
+  },
+  "/Users/avinash/Documents/ai-desktop/vscode/package.json": {
+    "mtime": 1777453991.65272,
+    "ast_hash": "67b3905af9635b8db5088c6ad827e3dd",
+    "semantic_hash": "67b3905af9635b8db5088c6ad827e3dd"
+  },
+  "/Users/avinash/Documents/ai-desktop/vscode/tsconfig.json": {
+    "mtime": 1777453991.6532857,
+    "ast_hash": "1e739b1db23516b4331f0b3827f812cc",
+    "semantic_hash": "1e739b1db23516b4331f0b3827f812cc"
+  },
+  "/Users/avinash/Documents/ai-desktop/vscode/src/extension.ts": {
+    "mtime": 1778041847.2749355,
+    "ast_hash": "5a770644b0155e1c99a7831910b62d5c",
+    "semantic_hash": "5a770644b0155e1c99a7831910b62d5c"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/App.tsx": {
+    "mtime": 1778041847.2676752,
+    "ast_hash": "06abccd0422be0de005857335620ece2",
+    "semantic_hash": "06abccd0422be0de005857335620ece2"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/main.tsx": {
+    "mtime": 1778041847.271727,
+    "ast_hash": "8e59ecb4d054cd896a06ed18b5ed12f3",
+    "semantic_hash": "8e59ecb4d054cd896a06ed18b5ed12f3"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/electron.d.ts": {
+    "mtime": 1778140938.1248562,
+    "ast_hash": "1750fe9536b22954589433fc4357abeb",
+    "semantic_hash": "1750fe9536b22954589433fc4357abeb"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/types.ts": {
+    "mtime": 1778140856.4251723,
+    "ast_hash": "305df3bd11fee66b4f5d190e7f5aad93",
+    "semantic_hash": "305df3bd11fee66b4f5d190e7f5aad93"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/browserAPI.ts": {
+    "mtime": 1778140966.384177,
+    "ast_hash": "4ad29cebf43a2c2a7005d3636e2d5a08",
+    "semantic_hash": "4ad29cebf43a2c2a7005d3636e2d5a08"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/components/InputBar.tsx": {
+    "mtime": 1778144049.9409914,
+    "ast_hash": "00014250cb7b55d1fbcfc00a7c4061d8",
+    "semantic_hash": "00014250cb7b55d1fbcfc00a7c4061d8"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/components/ChatArea.tsx": {
+    "mtime": 1778144010.8692493,
+    "ast_hash": "fc9b7f799dba27b63b2925358f386f48",
+    "semantic_hash": "fc9b7f799dba27b63b2925358f386f48"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/components/ModelPicker.tsx": {
+    "mtime": 1777453991.6482587,
+    "ast_hash": "cfe77d45dc97c25299691383ee5f0063",
+    "semantic_hash": "cfe77d45dc97c25299691383ee5f0063"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/components/MessageBubble.tsx": {
+    "mtime": 1778144060.5191748,
+    "ast_hash": "2005d65190a3e0a49b5720a741ae7b08",
+    "semantic_hash": "2005d65190a3e0a49b5720a741ae7b08"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/components/Sidebar.tsx": {
+    "mtime": 1778143992.8713148,
+    "ast_hash": "944d965d742154a3b7aa628cadd39ee4",
+    "semantic_hash": "944d965d742154a3b7aa628cadd39ee4"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/pages/Settings.tsx": {
+    "mtime": 1778068034.5622356,
+    "ast_hash": "b047e33aa15bbf13dcfb62487dc76b15",
+    "semantic_hash": "b047e33aa15bbf13dcfb62487dc76b15"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/pages/MainApp.tsx": {
+    "mtime": 1778140934.5132213,
+    "ast_hash": "9f752794137ba22f61172a7892df7aef",
+    "semantic_hash": "9f752794137ba22f61172a7892df7aef"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/pages/Onboarding.tsx": {
+    "mtime": 1778041847.273044,
+    "ast_hash": "69b1307a2c0395a01ac83184336631e0",
+    "semantic_hash": "69b1307a2c0395a01ac83184336631e0"
+  },
+  "/Users/avinash/Documents/ai-desktop/index.html": {
+    "mtime": 1778143728.837869,
+    "ast_hash": "08229ca511d7083c8da09ed04e218e64",
+    "semantic_hash": "08229ca511d7083c8da09ed04e218e64"
+  },
+  "/Users/avinash/Documents/ai-desktop/README.md": {
+    "mtime": 1778041847.2591794,
+    "ast_hash": "924b3d90e283d0e339c0288dcf339071",
+    "semantic_hash": "924b3d90e283d0e339c0288dcf339071"
+  },
+  "/Users/avinash/Documents/ai-desktop/STEPS.md": {
+    "mtime": 1778069886.5475771,
+    "ast_hash": "0785b4626be23357084c1a612dda0f35",
+    "semantic_hash": "0785b4626be23357084c1a612dda0f35"
+  },
+  "/Users/avinash/Documents/ai-desktop/.github/workflows/release.yml": {
+    "mtime": 1778041847.2584498,
+    "ast_hash": "6048d11b150358332ea5cae9ea1beff6",
+    "semantic_hash": "6048d11b150358332ea5cae9ea1beff6"
+  },
+  "/Users/avinash/Documents/ai-desktop/.github/workflows/pages.yml": {
+    "mtime": 1778041847.2578492,
+    "ast_hash": "f6b42f68c1eeaef63f2cf8ec674efdd9",
+    "semantic_hash": "f6b42f68c1eeaef63f2cf8ec674efdd9"
+  },
+  "/Users/avinash/Documents/ai-desktop/.github/workflows/build.yml": {
+    "mtime": 1777453991.6271055,
+    "ast_hash": "992d934beda13d0ef15356e98d98fdbf",
+    "semantic_hash": "992d934beda13d0ef15356e98d98fdbf"
+  },
+  "/Users/avinash/Documents/ai-desktop/public/logo.png": {
+    "mtime": 1778141376.6361887,
+    "ast_hash": "bee931f8620baf757bedf5443a6c0d55",
+    "semantic_hash": "bee931f8620baf757bedf5443a6c0d55"
+  },
+  "/Users/avinash/Documents/ai-desktop/src/assets/logo.png": {
+    "mtime": 1778143725.8852003,
+    "ast_hash": "bee931f8620baf757bedf5443a6c0d55",
+    "semantic_hash": "bee931f8620baf757bedf5443a6c0d55"
+  }
+}
